@@ -1,0 +1,415 @@
+{
+  "00000000-0000-0000-0000-000000000001": {
+    "profile": {
+      "name": "Numan Faisal",
+      "age": 23,
+      "sex": "MALE",
+      "heightCm": 186
+    },
+    "fitnessProfile": {
+      "experienceLevel": "INTERMEDIATE",
+      "trainingEnvironment": "GYM",
+      "equipmentAvailable": [],
+      "workoutDaysPerWeek": 5,
+      "sessionDurationMin": 90,
+      "injuries": [],
+      "physicalLimitations": [],
+      "dietaryPreference": "Omnivore ",
+      "allergies": [
+        "No"
+      ],
+      "dislikedFoods": [],
+      "cuisinePreferences": [],
+      "budgetTier": "LOW"
+    },
+    "goal": {
+      "type": "RECOMPOSITION",
+      "isPrimary": true
+    },
+    "nutritionPlan": {
+      "bmr": 1803,
+      "tdee": 2794,
+      "calorieTarget": {
+        "value": 2594,
+        "provenance": "CALCULATED"
+      },
+      "proteinTargetG": {
+        "value": 150,
+        "provenance": "CALCULATED"
+      },
+      "carbTargetG": {
+        "value": 346,
+        "provenance": "CALCULATED"
+      },
+      "fatTargetG": {
+        "value": 68,
+        "provenance": "CALCULATED"
+      },
+      "budgetTier": "LOW",
+      "recommendedMealSlots": [
+        "Breakfast",
+        "Lunch",
+        "Pre-Workout Snack",
+        "Dinner"
+      ]
+    },
+    "workoutPlan": {
+      "splitType": "PUSH_PULL_LEGS",
+      "days": [
+        {
+          "dayOfWeek": 1,
+          "focus": "Push (Chest, Shoulders, Triceps)",
+          "exercises": [
+            {
+              "exerciseName": "Barbell Bench Press",
+              "exerciseSlug": "barbell-bench-press",
+              "mediaUri": "exercises/barbell-bench-press.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 1
+            },
+            {
+              "exerciseName": "Overhead Dumbbell Shoulder Press",
+              "exerciseSlug": "dumbbell-shoulder-press",
+              "mediaUri": "exercises/dumbbell-shoulder-press.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 2
+            },
+            {
+              "exerciseName": "Barbell Bench Press",
+              "exerciseSlug": "barbell-bench-press",
+              "mediaUri": "exercises/barbell-bench-press.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 3
+            }
+          ]
+        },
+        {
+          "dayOfWeek": 2,
+          "focus": "Pull (Back, Biceps)",
+          "exercises": [
+            {
+              "exerciseName": "Romanian Deadlift",
+              "exerciseSlug": "romanian-deadlift",
+              "mediaUri": "exercises/romanian-deadlift.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 1
+            },
+            {
+              "exerciseName": "Lat Pulldown / Pull-Up",
+              "exerciseSlug": "lat-pulldown",
+              "mediaUri": "exercises/lat-pulldown.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 2
+            },
+            {
+              "exerciseName": "Barbell Bent-Over Row",
+              "exerciseSlug": "barbell-bent-over-row",
+              "mediaUri": "exercises/barbell-bent-over-row.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 3
+            }
+          ]
+        },
+        {
+          "dayOfWeek": 3,
+          "focus": "Legs & Core",
+          "exercises": [
+            {
+              "exerciseName": "Barbell Back Squat",
+              "exerciseSlug": "barbell-back-squat",
+              "mediaUri": "exercises/barbell-back-squat.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 1
+            },
+            {
+              "exerciseName": "Barbell Back Squat",
+              "exerciseSlug": "barbell-back-squat",
+              "mediaUri": "exercises/barbell-back-squat.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 2
+            },
+            {
+              "exerciseName": "Push-Up",
+              "exerciseSlug": "push-up",
+              "mediaUri": "exercises/push-up.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 3
+            }
+          ]
+        },
+        {
+          "dayOfWeek": 4,
+          "focus": "Push (Hypertrophy)",
+          "exercises": [
+            {
+              "exerciseName": "Dumbbell Incline Bench Press",
+              "exerciseSlug": "dumbbell-incline-press",
+              "mediaUri": "exercises/dumbbell-incline-press.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 1
+            },
+            {
+              "exerciseName": "Dumbbell Lateral Raise",
+              "exerciseSlug": "dumbbell-lateral-raise",
+              "mediaUri": "exercises/dumbbell-lateral-raise.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 2
+            },
+            {
+              "exerciseName": "Barbell Bench Press",
+              "exerciseSlug": "barbell-bench-press",
+              "mediaUri": "exercises/barbell-bench-press.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 3
+            }
+          ]
+        },
+        {
+          "dayOfWeek": 5,
+          "focus": "Pull (Hypertrophy)",
+          "exercises": [
+            {
+              "exerciseName": "Lat Pulldown / Pull-Up",
+              "exerciseSlug": "lat-pulldown",
+              "mediaUri": "exercises/lat-pulldown.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 1
+            },
+            {
+              "exerciseName": "Barbell Bent-Over Row",
+              "exerciseSlug": "barbell-bent-over-row",
+              "mediaUri": "exercises/barbell-bent-over-row.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 2
+            },
+            {
+              "exerciseName": "Barbell Bent-Over Row",
+              "exerciseSlug": "barbell-bent-over-row",
+              "mediaUri": "exercises/barbell-bent-over-row.gif",
+              "sets": 4,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 8.5,
+              "orderIndex": 3
+            }
+          ]
+        }
+      ],
+      "generatedBy": "Deterministic Training Engine v1.0"
+    },
+    "waterLogs": [],
+    "aiPlan": {
+      "coachNarrative": "This program is calibrated for your recomposition objective, targeting 2594 kcal and 150g protein. Focus on technical execution on today's Push (Chest, Shoulders, Triceps) session and prioritize progressive overload with adequate recovery.",
+      "workoutFocus": "Push (Chest, Shoulders, Triceps)",
+      "workoutCues": [
+        "Control the eccentric (lowering) phase for 2-3 seconds to maximize mechanical tension.",
+        "Take full rest intervals between compound sets to maintain force output across all prescribed sets.",
+        "Stop 1-2 reps shy of failure on compound lifts to maintain clean form and joint longevity."
+      ],
+      "meals": [
+        {
+          "mealSlot": "BREAKFAST",
+          "recipeTitle": "High-Protein Power Oats & Egg Whites",
+          "ingredients": [
+            "80g Rolled Oats",
+            "1 Scoop Whey Protein",
+            "3 Egg Whites",
+            "1 Sliced Banana",
+            "Handful of Berries"
+          ],
+          "instructions": [
+            "Cook rolled oats in water or milk until creamy and thick.",
+            "Remove from heat and vigorously stir in protein powder.",
+            "Scramble egg whites separately and top oats with fresh banana and berries."
+          ],
+          "youtubeSearch": "healthy high protein oatmeal egg white breakfast",
+          "calories": 649,
+          "proteinG": 38
+        },
+        {
+          "mealSlot": "LUNCH",
+          "recipeTitle": "Mediterranean Grilled Chicken & Quinoa Bowl",
+          "ingredients": [
+            "180g Chicken Breast",
+            "150g Cooked Quinoa",
+            "Diced Cucumbers",
+            "Cherry Tomatoes",
+            "1 tbsp Extra Virgin Olive Oil"
+          ],
+          "instructions": [
+            "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
+            "Fluff warm quinoa into a bowl.",
+            "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil."
+          ],
+          "youtubeSearch": "healthy chicken quinoa meal prep bowl",
+          "calories": 908,
+          "proteinG": 53
+        },
+        {
+          "mealSlot": "SNACK",
+          "recipeTitle": "Greek Yogurt Parfait & Raw Almonds",
+          "ingredients": [
+            "200g Non-Fat Greek Yogurt",
+            "25g Raw Almonds",
+            "1 tbsp Pure Honey or Mixed Berries"
+          ],
+          "instructions": [
+            "Spoon rich Greek yogurt into a bowl.",
+            "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy."
+          ],
+          "youtubeSearch": "high protein greek yogurt fitness snack",
+          "calories": 389,
+          "proteinG": 23
+        },
+        {
+          "mealSlot": "DINNER",
+          "recipeTitle": "Lean Beef & Roasted Sweet Potato Power Plate",
+          "ingredients": [
+            "170g Lean Ground Beef (93/7) or Turkey",
+            "200g Roasted Sweet Potato Cubes",
+            "Steamed Broccoli & Green Beans"
+          ],
+          "instructions": [
+            "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
+            "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
+            "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato."
+          ],
+          "youtubeSearch": "lean beef sweet potato muscle building dinner",
+          "calories": 648,
+          "proteinG": 36
+        }
+      ]
+    },
+    "aiMeals": [
+      {
+        "mealSlot": "BREAKFAST",
+        "recipeTitle": "High-Protein Power Oats & Egg Whites",
+        "ingredients": [
+          "80g Rolled Oats",
+          "1 Scoop Whey Protein",
+          "3 Egg Whites",
+          "1 Sliced Banana",
+          "Handful of Berries"
+        ],
+        "instructions": [
+          "Cook rolled oats in water or milk until creamy and thick.",
+          "Remove from heat and vigorously stir in protein powder.",
+          "Scramble egg whites separately and top oats with fresh banana and berries."
+        ],
+        "youtubeSearch": "healthy high protein oatmeal egg white breakfast",
+        "calories": 649,
+        "proteinG": 38
+      },
+      {
+        "mealSlot": "LUNCH",
+        "recipeTitle": "Mediterranean Grilled Chicken & Quinoa Bowl",
+        "ingredients": [
+          "180g Chicken Breast",
+          "150g Cooked Quinoa",
+          "Diced Cucumbers",
+          "Cherry Tomatoes",
+          "1 tbsp Extra Virgin Olive Oil"
+        ],
+        "instructions": [
+          "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
+          "Fluff warm quinoa into a bowl.",
+          "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil."
+        ],
+        "youtubeSearch": "healthy chicken quinoa meal prep bowl",
+        "calories": 908,
+        "proteinG": 53
+      },
+      {
+        "mealSlot": "SNACK",
+        "recipeTitle": "Greek Yogurt Parfait & Raw Almonds",
+        "ingredients": [
+          "200g Non-Fat Greek Yogurt",
+          "25g Raw Almonds",
+          "1 tbsp Pure Honey or Mixed Berries"
+        ],
+        "instructions": [
+          "Spoon rich Greek yogurt into a bowl.",
+          "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy."
+        ],
+        "youtubeSearch": "high protein greek yogurt fitness snack",
+        "calories": 389,
+        "proteinG": 23
+      },
+      {
+        "mealSlot": "DINNER",
+        "recipeTitle": "Lean Beef & Roasted Sweet Potato Power Plate",
+        "ingredients": [
+          "170g Lean Ground Beef (93/7) or Turkey",
+          "200g Roasted Sweet Potato Cubes",
+          "Steamed Broccoli & Green Beans"
+        ],
+        "instructions": [
+          "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
+          "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
+          "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato."
+        ],
+        "youtubeSearch": "lean beef sweet potato muscle building dinner",
+        "calories": 648,
+        "proteinG": 36
+      }
+    ],
+    "hasCompletedOnboarding": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Fitness Transformation",
+    "slug": "fitness-transformation-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#0F172A"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      }
+    },
+    "plugins": [
+      "expo-image-picker",
+      "expo-status-bar"
+    ]
+  }
+}
