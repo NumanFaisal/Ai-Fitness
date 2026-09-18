@@ -73,16 +73,33 @@ export function findUserByEmail(email: string): UserAccount | null {
   return Object.values(users).find((u) => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
 
-export function createUserAccount(email: string, passwordHash: string): UserAccount {
+export function createUserAccount(email: string, passwordHash: string, customId?: string): UserAccount {
   const store = loadStoreFromDisk();
   if (!store._users) store._users = {};
-  const id = `user_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // If user with this email already exists in disk store, preserve or update
+  const existingKey = Object.keys(store._users).find(
+    (k) => store._users[k].email?.toLowerCase() === normalizedEmail
+  );
+
+  const id = customId || (existingKey ? store._users[existingKey].id : `user_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
   const account: UserAccount = {
     id,
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     passwordHash,
-    createdAt: new Date().toISOString(),
+    createdAt: existingKey ? store._users[existingKey].createdAt : new Date().toISOString(),
   };
+
+  // Clean up old key if customId changed it
+  if (existingKey && existingKey !== id) {
+    delete store._users[existingKey];
+    if (store[existingKey] && !store[id]) {
+      store[id] = store[existingKey];
+      delete store[existingKey];
+    }
+  }
+
   store._users[id] = account;
 
   // Link existing plan to new user so they don't start from an empty screen

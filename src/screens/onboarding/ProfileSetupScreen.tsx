@@ -79,17 +79,19 @@ export function ProfileSetupScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  title: { ...typography.h1, color: colors.textPrimary },
-  label: { ...typography.caption, color: colors.textSecondary, marginTop: 8 },
-  helper: { fontSize: 12, color: colors.textMuted, marginTop: -8 },
+  container: { flex: 1, backgroundColor: colors.ink },
+  title: { ...typography.h1, color: colors.bone },
+  label: { ...typography.label, color: colors.ash, marginTop: 12, marginBottom: 4 },
+  helper: { fontSize: 13, color: colors.ash, marginBottom: 8, lineHeight: 18 },
   input: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 14,
-    color: colors.textPrimary,
+    color: colors.bone,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.divider,
+    fontSize: 15,
+    fontVariant: ["tabular-nums"],
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { paddingVertical: 8, paddingHorizontal: 12 },

@@ -16,7 +16,14 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, "ReviewGenerate">;
 type Phase = "idle" | "submitting" | "error";
 
 export function ReviewGenerateScreen({ navigation }: Props) {
-  const { profile, fitnessProfile, goal } = useOnboarding();
+  const {
+    profile,
+    fitnessProfile,
+    goal,
+    targetWeightKg,
+    targetPhotoUri,
+    targetPhysiqueAnalysis,
+  } = useOnboarding();
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -24,7 +31,13 @@ export function ReviewGenerateScreen({ navigation }: Props) {
     setPhase("submitting");
     setErrorMessage(null);
     try {
-      await endpoints.submitProfile(profile as any);
+      const profileToSubmit = {
+        ...profile,
+        targetWeightKg,
+        targetPhotoUri,
+        targetPhysique: targetPhysiqueAnalysis,
+      };
+      await endpoints.submitProfile(profileToSubmit as any);
       await endpoints.submitFitnessProfile(fitnessProfile as any);
       if (goal) await endpoints.submitGoal(goal);
       await endpoints.generatePlan();
@@ -57,7 +70,7 @@ export function ReviewGenerateScreen({ navigation }: Props) {
 
       <View style={{ gap: 12 }}>
         {phase === "submitting" ? (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.brass} />
         ) : (
           <PrimaryButton label="Generate my plan" onPress={handleGenerate} />
         )}
@@ -67,7 +80,7 @@ export function ReviewGenerateScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 80, paddingBottom: 48, justifyContent: "space-between" },
-  title: { ...typography.h1, color: colors.textPrimary },
-  subtitle: { ...typography.body, color: colors.textSecondary },
+  container: { flex: 1, backgroundColor: colors.ink, padding: 24, paddingTop: 80, paddingBottom: 48, justifyContent: "space-between" },
+  title: { ...typography.h1, color: colors.bone },
+  subtitle: { ...typography.body, color: colors.ash, marginTop: 8 },
 });

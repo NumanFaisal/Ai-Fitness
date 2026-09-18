@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -12,7 +12,7 @@ import { ProgressScreen } from "@/screens/ProgressScreen";
 import { AICoachScreen } from "@/screens/AICoachScreen";
 import { ProfileScreen } from "@/screens/ProfileScreen";
 import { endpoints } from "@/api/endpoints";
-import { colors } from "@/theme/colors";
+import { useTheme } from "@/store/ThemeContext";
 import {
   TodayTabIcon,
   WorkoutTabIcon,
@@ -40,23 +40,43 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 function MainTabs() {
+  const { colors, isDark } = useTheme();
+
+  // Frosted glass tab bar background
+  const tabBarBg = isDark
+    ? "rgba(10,10,12,0.88)"
+    : "rgba(249,249,251,0.88)";
+
+  const tabBarBorderColor = isDark
+    ? "rgba(255,255,255,0.09)"
+    : "rgba(0,0,0,0.08)";
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
+          position: "absolute",
+          backgroundColor: tabBarBg,
+          borderTopColor: tabBarBorderColor,
+          borderTopWidth: 0.5,
+          height: Platform.OS === "ios" ? 82 : 68,
+          paddingBottom: Platform.OS === "ios" ? 24 : 10,
+          paddingTop: 8,
+          // Subtle shadow for elevation
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -1 },
+          shadowOpacity: isDark ? 0.4 : 0.1,
+          shadowRadius: 20,
+          elevation: 20,
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: isDark ? "rgba(235,235,245,0.40)" : "rgba(60,60,67,0.40)",
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "700",
-          letterSpacing: 0.2,
+          fontSize: 10,
+          fontWeight: "600",
+          letterSpacing: 0.1,
+          marginTop: 2,
         },
       }}
     >
@@ -117,19 +137,17 @@ function MainTabs() {
 export function RootNavigator() {
   const [loading, setLoading] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const { colors } = useTheme();
 
   useEffect(() => {
     async function checkStatus() {
       try {
-        // 1. Check local storage
         const localVal = await AsyncStorage.getItem("has_completed_onboarding");
         if (localVal === "true") {
           setHasCompletedOnboarding(true);
           setLoading(false);
           return;
         }
-
-        // 2. Check the real persistent database on the server
         const status = await endpoints.getUserStatus();
         if (status?.hasPlan || status?.hasCompletedOnboarding) {
           await AsyncStorage.setItem("has_completed_onboarding", "true");
@@ -150,10 +168,12 @@ export function RootNavigator() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
+
+  const headerBg = colors.isDark ? "rgba(10,10,12,0.92)" : "rgba(249,249,251,0.92)";
 
   return (
     <RootStack.Navigator
@@ -165,12 +185,28 @@ export function RootNavigator() {
       <RootStack.Screen
         name="Water"
         component={WaterTrackingScreen}
-        options={{ headerShown: true, title: "Hydration", headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.textPrimary }}
+        options={{
+          headerShown: true,
+          title: "Hydration",
+          headerTransparent: true,
+          headerBlurEffect: "regular",
+          headerStyle: { backgroundColor: colors.surface as string },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { fontWeight: "600", fontSize: 17 },
+        }}
       />
       <RootStack.Screen
         name="Progress"
         component={ProgressScreen}
-        options={{ headerShown: true, title: "Progress Timeline", headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.textPrimary }}
+        options={{
+          headerShown: true,
+          title: "Progress",
+          headerTransparent: true,
+          headerBlurEffect: "regular",
+          headerStyle: { backgroundColor: colors.surface as string },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { fontWeight: "600", fontSize: 17 },
+        }}
       />
     </RootStack.Navigator>
   );

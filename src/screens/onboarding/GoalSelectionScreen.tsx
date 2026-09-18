@@ -59,12 +59,15 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: colors.textSecondary, marginBottom: 8 },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.divider,
   },
-  cardSelected: { borderColor: colors.primary },
-  cardTitle: { ...typography.h2, color: colors.textPrimary, fontSize: 16 },
-  cardDescription: { color: colors.textSecondary, fontSize: 13, marginTop: 4 },
+  cardSelected: {
+    borderColor: colors.brass,
+    backgroundColor: colors.surfaceAlt,
+  },
+  cardTitle: { ...typography.h2, color: colors.bone, fontSize: 16, fontWeight: "600" },
+  cardDescription: { ...typography.body, color: colors.ash, fontSize: 13, marginTop: 4 },
 });

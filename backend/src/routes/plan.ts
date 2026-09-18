@@ -52,6 +52,7 @@ planRouter.post("/analysis/start", (req: AuthRequest, res: Response) => {
       sessionDurationMin: userState.fitnessProfile?.sessionDurationMin ?? 45,
       injuries: userState.fitnessProfile?.injuries ?? [],
       goal: userState.goal?.type ?? "GENERAL_FITNESS",
+      targetPhysiqueFocus: (userState as any).targetPhysique?.standoutMuscles || [],
     });
 
     // Store in user state
@@ -116,6 +117,7 @@ planRouter.post("/plan/generate", async (req: AuthRequest, res: Response) => {
     sessionDurationMin: userState.fitnessProfile?.sessionDurationMin ?? 45,
     injuries: userState.fitnessProfile?.injuries ?? [],
     goal: userState.goal?.type ?? "GENERAL_FITNESS",
+    targetPhysiqueFocus: (userState as any).targetPhysique?.standoutMuscles || [],
   });
 
   // Store in user state

@@ -54,10 +54,8 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     userId = localUser.id;
   }
 
-  // Also ensure mirrored in disk store
-  if (!findUserByEmail(normalizedEmail)) {
-    createUserAccount(normalizedEmail, passwordHash);
-  }
+  // Always mirror in disk store with the same ID
+  createUserAccount(normalizedEmail, passwordHash, userId);
 
   getUserState(userId);
   const token = signToken({ userId, email: normalizedEmail });
@@ -80,16 +78,23 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
   let user: { id: string; email: string; passwordHash: string } | null = null;
 
-  // 1. Check persistent disk store first
-  const diskUser = findUserByEmail(normalizedEmail);
-  if (diskUser) {
-    user = diskUser;
-  } else {
-    try {
-      const dbUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-      if (dbUser) user = dbUser;
-    } catch {
-      // Prisma offline
+  // 1. Check PostgreSQL first if available to prioritize canonical DB ID
+  try {
+    const dbUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (dbUser) {
+      user = { id: dbUser.id, email: dbUser.email, passwordHash: dbUser.passwordHash };
+      // Synchronize disk store with canonical DB ID
+      createUserAccount(normalizedEmail, dbUser.passwordHash, dbUser.id);
+    }
+  } catch {
+    // Prisma offline
+  }
+
+  // 2. Check persistent disk store if not found in DB
+  if (!user) {
+    const diskUser = findUserByEmail(normalizedEmail);
+    if (diskUser) {
+      user = diskUser;
     }
   }
 

@@ -10,8 +10,7 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors } from "@/theme/colors";
-import { typography } from "@/theme/typography";
+import { useTheme } from "@/store/ThemeContext";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { endpoints } from "@/api/endpoints";
 import type { UserReminders } from "@/types/models";
@@ -26,17 +25,16 @@ const COMMON_TIMES = ["06:00 AM", "07:00 AM", "08:30 AM", "05:00 PM", "06:00 PM"
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function GymReminderModal({ visible, onClose, onSaved }: Props) {
+  const { colors, isDark } = useTheme();
   const [selectedTime, setSelectedTime] = useState("06:00 PM");
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 4, 5]); // Mon, Tue, Thu, Fri
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 4, 5]);
   const [gymAlertEnabled, setGymAlertEnabled] = useState(true);
   const [mealAlertEnabled, setMealAlertEnabled] = useState(true);
   const [waterAlertEnabled, setWaterAlertEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      loadSavedReminders();
-    }
+    if (visible) loadSavedReminders();
   }, [visible]);
 
   async function loadSavedReminders() {
@@ -75,14 +73,10 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
       waterReminders: waterAlertEnabled,
       waterIntervalHours: 2,
     };
-
     try {
       await AsyncStorage.setItem("user_gym_reminders", JSON.stringify(data));
       await endpoints.saveReminders(data);
-      Alert.alert(
-        "Reminders Configured",
-        `Your daily workout alert is scheduled for ${selectedTime} on your training days.`
-      );
+      Alert.alert("Reminders Configured", `Your daily workout alert is scheduled for ${selectedTime} on your training days.`);
       if (onSaved) onSaved(data);
       onClose();
     } catch {
@@ -93,94 +87,99 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
     }
   }
 
+  const sheetBg = isDark ? "rgba(18,18,20,0.97)" : "rgba(248,248,252,0.98)";
+  const chipBg = isDark ? "rgba(58,58,60,0.70)" : "rgba(229,229,234,0.80)";
+  const pillBg = isDark ? "rgba(44,44,46,0.80)" : "rgba(242,242,247,0.90)";
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: sheetBg, borderColor: colors.glassBorder }]}>
+          {/* Drag Handle */}
+          <View style={[styles.handle, { backgroundColor: colors.textTertiary }]} />
+
           <View style={styles.header}>
-            <Text style={styles.title}>Gym Schedule & Reminders</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeText}>✕</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Gym Schedule</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.closeBtn, { backgroundColor: pillBg }]}
+            >
+              <Text style={[styles.closeText, { color: colors.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 16 }}>
+          <ScrollView style={{ maxHeight: 480 }} contentContainerStyle={{ gap: 20 }} showsVerticalScrollIndicator={false}>
+            {/* Time Picker */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>What time do you go to the gym?</Text>
-              <Text style={styles.sectionSub}>We'll notify you 30 mins before your session</Text>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>Gym time</Text>
+              <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>Notified 30 min before your session</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.timeChips}>
                 {COMMON_TIMES.map((time) => {
                   const active = selectedTime === time;
                   return (
                     <TouchableOpacity
                       key={time}
-                      style={[styles.chip, active && styles.chipActive]}
+                      style={[
+                        styles.chip,
+                        { backgroundColor: active ? colors.accent : chipBg, borderColor: active ? colors.accent : colors.glassBorder },
+                      ]}
                       onPress={() => setSelectedTime(time)}
                     >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{time}</Text>
+                      <Text style={[styles.chipText, { color: active ? "#FFFFFF" : colors.textSecondary }]}>{time}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
             </View>
 
+            {/* Days Picker */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Training Days</Text>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>Training days</Text>
               <View style={styles.daysRow}>
                 {DAYS.map((dayName, idx) => {
                   const active = selectedDays.includes(idx);
                   return (
                     <TouchableOpacity
                       key={dayName}
-                      style={[styles.dayChip, active && styles.dayChipActive]}
+                      style={[
+                        styles.dayChip,
+                        { backgroundColor: active ? colors.accent : chipBg, borderColor: active ? colors.accent : colors.glassBorder },
+                      ]}
                       onPress={() => toggleDay(idx)}
                     >
-                      <Text style={[styles.dayChipText, active && styles.dayChipTextActive]}>{dayName}</Text>
+                      <Text style={[styles.dayChipText, { color: active ? "#FFFFFF" : colors.textSecondary }]}>{dayName}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </View>
 
-            <View style={styles.switchRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.switchTitle}>Gym Workout Alert</Text>
-                <Text style={styles.switchSub}>Daily reminder before workout time</Text>
+            {/* Toggles */}
+            {[
+              { title: "Workout Alert", sub: "30 min before gym time", val: gymAlertEnabled, set: setGymAlertEnabled },
+              { title: "Meal Reminders", sub: "Breakfast, Lunch & Dinner", val: mealAlertEnabled, set: setMealAlertEnabled },
+              { title: "Hydration Alerts", sub: "Every 2 hours throughout the day", val: waterAlertEnabled, set: setWaterAlertEnabled },
+            ].map((row) => (
+              <View
+                key={row.title}
+                style={[styles.switchRow, { borderTopColor: colors.glassBorder }]}
+              >
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.switchTitle, { color: colors.textPrimary }]}>{row.title}</Text>
+                  <Text style={[styles.switchSub, { color: colors.textSecondary }]}>{row.sub}</Text>
+                </View>
+                <Switch
+                  value={row.val}
+                  onValueChange={row.set}
+                  trackColor={{ false: chipBg, true: colors.accent }}
+                  thumbColor="#FFFFFF"
+                />
               </View>
-              <Switch
-                value={gymAlertEnabled}
-                onValueChange={setGymAlertEnabled}
-                trackColor={{ false: colors.surfaceAlt, true: colors.primary }}
-              />
-            </View>
-
-            <View style={styles.switchRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.switchTitle}>Meal & Diet Reminders</Text>
-                <Text style={styles.switchSub}>Alerts for Breakfast, Lunch, & Dinner</Text>
-              </View>
-              <Switch
-                value={mealAlertEnabled}
-                onValueChange={setMealAlertEnabled}
-                trackColor={{ false: colors.surfaceAlt, true: colors.primary }}
-              />
-            </View>
-
-            <View style={styles.switchRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.switchTitle}>Hydration Reminders</Text>
-                <Text style={styles.switchSub}>Periodic alerts to drink water</Text>
-              </View>
-              <Switch
-                value={waterAlertEnabled}
-                onValueChange={setWaterAlertEnabled}
-                trackColor={{ false: colors.surfaceAlt, true: colors.primary }}
-              />
-            </View>
+            ))}
           </ScrollView>
 
           <View style={styles.footer}>
-            <PrimaryButton label="Save Reminders" onPress={handleSave} loading={saving} />
+            <PrimaryButton label="Save Schedule" onPress={handleSave} loading={saving} size="large" />
           </View>
         </View>
       </View>
@@ -191,124 +190,71 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    paddingBottom: 36,
-    maxHeight: "85%",
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingBottom: 40,
+    maxHeight: "88%",
+    borderWidth: 0.5,
+    borderBottomWidth: 0,
+    gap: 4,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 12,
+    opacity: 0.4,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  title: {
-    ...typography.h2,
-    color: colors.textPrimary,
-  },
+  title: { fontSize: 20, fontWeight: "700", letterSpacing: 0.38 },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceAlt,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
-  closeText: {
-    color: colors.textSecondary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  section: {
-    gap: 8,
-  },
-  sectionLabel: {
-    color: colors.textPrimary,
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  sectionSub: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  timeChips: {
-    flexDirection: "row",
-    gap: 8,
-    paddingVertical: 4,
-  },
+  closeText: { fontSize: 14, fontWeight: "600" },
+  section: { gap: 8 },
+  sectionLabel: { fontSize: 15, fontWeight: "600", letterSpacing: -0.2 },
+  sectionSub: { fontSize: 12, marginTop: -4 },
+  timeChips: { flexDirection: "row", gap: 8, paddingVertical: 4 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 20,
+    borderWidth: 0.5,
   },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  chipTextActive: {
-    color: "#FFFFFF",
-  },
-  daysRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 4,
-  },
+  chipText: { fontSize: 13, fontWeight: "500" },
+  daysRow: { flexDirection: "row", justifyContent: "space-between" },
   dayChip: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: colors.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 0.5,
   },
-  dayChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  dayChipText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  dayChipTextActive: {
-    color: "#FFFFFF",
-  },
+  dayChipText: { fontSize: 12, fontWeight: "600" },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    paddingVertical: 10,
+    borderTopWidth: 0.5,
   },
-  switchTitle: {
-    color: colors.textPrimary,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  switchSub: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  footer: {
-    marginTop: 16,
-  },
+  switchTitle: { fontSize: 15, fontWeight: "600" },
+  switchSub: { fontSize: 12, marginTop: 1 },
+  footer: { marginTop: 16 },
 });

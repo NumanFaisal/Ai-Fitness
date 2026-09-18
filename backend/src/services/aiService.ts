@@ -135,10 +135,10 @@ async function callLLM(systemPrompt: string, userPrompt: string, jsonFormat = fa
     }
   }
 
-  // 2. Try Gemini (only if valid AI Studio key and model available)
+  // 2. Try Gemini (only if valid AI Studio / Generative AI key and model available)
   if (!geminiDisabled && GEMINI_API_KEY && !GEMINI_API_KEY.includes("your-gemini-key")) {
     const cleanGeminiKey = GEMINI_API_KEY.replace(/['"]/g, "").trim();
-    if (cleanGeminiKey.startsWith("AIzaSy")) {
+    if (cleanGeminiKey.length > 10) {
       const activeGeminiModel = await getAvailableGeminiModel(cleanGeminiKey);
       if (activeGeminiModel) {
         const geminiUrls = [
@@ -268,7 +268,11 @@ OUTPUT FORMAT — return ONLY a single valid JSON object matching this exact sch
 }
 
 CONSTRAINTS FOR THIS USER:
-- Budget tier: ${userContext.budgetTier} — every ingredient must be realistic for this budget.
+- Budget tier: ${userContext.budgetTier}
+${userContext.budgetTier === "LOW" ? `  * CRITICAL LOW BUDGET RULES:
+  * You MUST use only ultra-cheap, accessible grocery staples: whole eggs, egg whites, canned tuna, whole chicken thighs/legs, low-fat cottage cheese/curd, lentils (daal), chickpeas, kidney beans, peanut butter, rolled oats, white/brown rice, potatoes, bananas, and frozen mixed vegetables.
+  * DO NOT include expensive ingredients: no protein powders, no quinoa, no fresh berries, no raw almonds/walnuts, no salmon, no steak/beef tenderloin, no avocados, and no specialty health-store items.
+  * Keep recipes simple, delicious, and under $2.50 per serving.` : `- High quality nutrient-dense ingredients matching standard budget.`}
 - Dietary preference: ${userContext.dietaryPreference}.
 - Exclude disliked foods: ${userContext.dislikedFoods.join(", ") || "None"}.
 - Never include allergens, even trace/derivative forms: ${userContext.allergies.join(", ") || "None"}.`;
@@ -287,6 +291,7 @@ PROFILE
 TARGETS
 - Calorie target: ${userContext.calorieTarget} kcal
 - Protein target: ${userContext.proteinTarget}g
+- Budget tier: ${userContext.budgetTier}
 
 TODAY'S WORKOUT
 - Focus: ${userContext.workoutFocus}
@@ -307,6 +312,7 @@ Write the coaching narrative and meal plan for this exact profile — do not gen
   console.log("[AI Engine] Generating personalized plan with sports-science calibrated engine.");
 
     const goalClean = userContext.goal.replace(/_/g, " ").toLowerCase();
+    const isLowBudget = userContext.budgetTier === "LOW";
     const breakfastCal = Math.round(userContext.calorieTarget * 0.25);
     const lunchCal = Math.round(userContext.calorieTarget * 0.35);
     const snackCal = Math.round(userContext.calorieTarget * 0.15);
@@ -317,67 +323,142 @@ Write the coaching narrative and meal plan for this exact profile — do not gen
     const snackProt = Math.round(userContext.proteinTarget * 0.15);
     const dinnerProt = userContext.proteinTarget - (breakfastProt + lunchProt + snackProt);
 
+    const meals = isLowBudget
+      ? [
+          {
+            mealSlot: "BREAKFAST",
+            recipeTitle: "Budget Scrambled Eggs & Cinnamon Banana Oats",
+            ingredients: [
+              "3 Whole Eggs + 2 Egg Whites",
+              "75g Rolled Oats",
+              "1 Sliced Banana",
+              "Pinch of Cinnamon & Sea Salt",
+            ],
+            instructions: [
+              "Cook rolled oats in boiling water or milk on stove until thick and creamy, topped with banana slices.",
+              "Whisk eggs and whites together and scramble gently on low heat with a light spray of cooking oil.",
+              "Season eggs with salt and black pepper and serve warm alongside oats.",
+            ],
+            youtubeSearch: "healthy budget eggs and oatmeal breakfast",
+            calories: breakfastCal,
+            proteinG: breakfastProt,
+          },
+          {
+            mealSlot: "LUNCH",
+            recipeTitle: "High-Protein Tuna & Chickpea Rice Power Bowl",
+            ingredients: [
+              "1 Can Tuna in Water (drained, 150g)",
+              "180g Cooked White or Brown Rice",
+              "120g Canned Chickpeas or Black Beans",
+              "1/2 Diced Onion & Squeeze of Lemon Juice",
+            ],
+            instructions: [
+              "Warm cooked rice in a bowl and mix in drained chickpeas or black beans for complex fiber and sustained energy.",
+              "Flake drained tuna over the rice and toss with diced red onion, lemon juice, salt, and pepper.",
+              "A delicious, complete protein source costing less than $2.00 to make.",
+            ],
+            youtubeSearch: "cheap high protein tuna rice bowl meal prep",
+            calories: lunchCal,
+            proteinG: lunchProt,
+          },
+          {
+            mealSlot: "SNACK",
+            recipeTitle: "Cottage Cheese / Curd with Natural Peanut Butter Toast",
+            ingredients: [
+              "160g Low-Fat Cottage Cheese or Plain Curd/Dahi",
+              "2 Slices Whole Wheat Bread",
+              "1.5 tbsp 100% Natural Peanut Butter",
+            ],
+            instructions: [
+              "Toast whole wheat bread until golden brown and spread with natural peanut butter.",
+              "Enjoy chilled cottage cheese or curd with a pinch of black pepper as a slow-digesting protein booster.",
+            ],
+            youtubeSearch: "cheap high protein fitness snack peanut butter",
+            calories: snackCal,
+            proteinG: snackProt,
+          },
+          {
+            mealSlot: "DINNER",
+            recipeTitle: "Savory Chicken Thighs & Lentils with Mashed Potatoes",
+            ingredients: [
+              "180g Skinned Chicken Thighs or Drumsticks",
+              "100g Cooked Red Lentils (Daal)",
+              "250g Boiled Potatoes (mashed with salt)",
+              "Steamed Frozen Mixed Vegetables (Peas, Corn, Carrots)",
+            ],
+            instructions: [
+              "Pan-sear or bake seasoned chicken thighs with paprika, garlic powder, turmeric, and black pepper until juicy.",
+              "Simmer lentils with garlic and cumin until thick and fragrant.",
+              "Boil potatoes, mash lightly with a splash of milk or olive oil, and serve with the chicken, lentils, and steamed veggies.",
+            ],
+            youtubeSearch: "cheap high protein chicken thigh meal prep",
+            calories: dinnerCal,
+            proteinG: dinnerProt,
+          },
+        ]
+      : [
+          {
+            mealSlot: "BREAKFAST",
+            recipeTitle: "High-Protein Power Oats & Egg Whites",
+            ingredients: ["80g Rolled Oats", "1 Scoop Whey Protein", "3 Egg Whites", "1 Sliced Banana", "Handful of Berries"],
+            instructions: [
+              "Cook rolled oats in water or milk until creamy and thick.",
+              "Remove from heat and vigorously stir in protein powder.",
+              "Scramble egg whites separately and top oats with fresh banana and berries.",
+            ],
+            youtubeSearch: "healthy high protein oatmeal egg white breakfast",
+            calories: breakfastCal,
+            proteinG: breakfastProt,
+          },
+          {
+            mealSlot: "LUNCH",
+            recipeTitle: "Mediterranean Grilled Chicken & Quinoa Bowl",
+            ingredients: ["180g Chicken Breast", "150g Cooked Quinoa", "Diced Cucumbers", "Cherry Tomatoes", "1 tbsp Extra Virgin Olive Oil"],
+            instructions: [
+              "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
+              "Fluff warm quinoa into a bowl.",
+              "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil.",
+            ],
+            youtubeSearch: "healthy chicken quinoa meal prep bowl",
+            calories: lunchCal,
+            proteinG: lunchProt,
+          },
+          {
+            mealSlot: "SNACK",
+            recipeTitle: "Greek Yogurt Parfait & Raw Almonds",
+            ingredients: ["200g Non-Fat Greek Yogurt", "25g Raw Almonds", "1 tbsp Pure Honey or Mixed Berries"],
+            instructions: [
+              "Spoon rich Greek yogurt into a bowl.",
+              "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy.",
+            ],
+            youtubeSearch: "high protein greek yogurt fitness snack",
+            calories: snackCal,
+            proteinG: snackProt,
+          },
+          {
+            mealSlot: "DINNER",
+            recipeTitle: "Lean Beef & Roasted Sweet Potato Power Plate",
+            ingredients: ["170g Lean Ground Beef (93/7) or Turkey", "200g Roasted Sweet Potato Cubes", "Steamed Broccoli & Green Beans"],
+            instructions: [
+              "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
+              "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
+              "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato.",
+            ],
+            youtubeSearch: "lean beef sweet potato muscle building dinner",
+            calories: dinnerCal,
+            proteinG: dinnerProt,
+          },
+        ];
+
     return {
-      coachNarrative: `This program is calibrated for your ${goalClean} objective, targeting ${userContext.calorieTarget} kcal and ${userContext.proteinTarget}g protein. Focus on technical execution on today's ${userContext.workoutFocus} session and prioritize progressive overload with adequate recovery.`,
+      coachNarrative: `This program is calibrated for your ${goalClean} objective, targeting ${userContext.calorieTarget} kcal and ${userContext.proteinTarget}g protein ${isLowBudget ? "with cost-effective, high-yield nutrition staples" : ""}. Focus on technical execution on today's ${userContext.workoutFocus} session and prioritize progressive overload with adequate recovery.`,
       workoutFocus: userContext.workoutFocus,
       workoutCues: [
         "Control the eccentric (lowering) phase for 2-3 seconds to maximize mechanical tension.",
         "Take full rest intervals between compound sets to maintain force output across all prescribed sets.",
         "Stop 1-2 reps shy of failure on compound lifts to maintain clean form and joint longevity.",
       ],
-      meals: [
-        {
-          mealSlot: "BREAKFAST",
-          recipeTitle: "High-Protein Power Oats & Egg Whites",
-          ingredients: ["80g Rolled Oats", "1 Scoop Whey Protein", "3 Egg Whites", "1 Sliced Banana", "Handful of Berries"],
-          instructions: [
-            "Cook rolled oats in water or milk until creamy and thick.",
-            "Remove from heat and vigorously stir in protein powder.",
-            "Scramble egg whites separately and top oats with fresh banana and berries.",
-          ],
-          youtubeSearch: "healthy high protein oatmeal egg white breakfast",
-          calories: breakfastCal,
-          proteinG: breakfastProt,
-        },
-        {
-          mealSlot: "LUNCH",
-          recipeTitle: "Mediterranean Grilled Chicken & Quinoa Bowl",
-          ingredients: ["180g Chicken Breast", "150g Cooked Quinoa", "Diced Cucumbers", "Cherry Tomatoes", "1 tbsp Extra Virgin Olive Oil"],
-          instructions: [
-            "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
-            "Fluff warm quinoa into a bowl.",
-            "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil.",
-          ],
-          youtubeSearch: "healthy chicken quinoa meal prep bowl",
-          calories: lunchCal,
-          proteinG: lunchProt,
-        },
-        {
-          mealSlot: "SNACK",
-          recipeTitle: "Greek Yogurt Parfait & Raw Almonds",
-          ingredients: ["200g Non-Fat Greek Yogurt", "25g Raw Almonds", "1 tbsp Pure Honey or Mixed Berries"],
-          instructions: [
-            "Spoon rich Greek yogurt into a bowl.",
-            "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy.",
-          ],
-          youtubeSearch: "high protein greek yogurt fitness snack",
-          calories: snackCal,
-          proteinG: snackProt,
-        },
-        {
-          mealSlot: "DINNER",
-          recipeTitle: "Lean Beef & Roasted Sweet Potato Power Plate",
-          ingredients: ["170g Lean Ground Beef (93/7) or Turkey", "200g Roasted Sweet Potato Cubes", "Steamed Broccoli & Green Beans"],
-          instructions: [
-            "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
-            "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
-            "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato.",
-          ],
-          youtubeSearch: "lean beef sweet potato muscle building dinner",
-          calories: dinnerCal,
-          proteinG: dinnerProt,
-        },
-      ],
+      meals,
     };
 }
 

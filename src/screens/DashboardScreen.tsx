@@ -2,14 +2,15 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  StyleSheet,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors } from "@/theme/colors";
-import { typography } from "@/theme/typography";
+import { useTheme } from "@/store/ThemeContext";
+import { GlassCard } from "@/components/GlassCard";
 import { EmptyState } from "@/components/EmptyState";
 import { endpoints } from "@/api/endpoints";
 import { GymReminderModal } from "@/components/GymReminderModal";
@@ -20,6 +21,7 @@ import type { MainTabParamList } from "@/navigation/RootNavigator";
 type Props = BottomTabScreenProps<MainTabParamList, "Dashboard">;
 
 export function DashboardScreen({ navigation }: Props) {
+  const { colors, isDark, toggleTheme } = useTheme();
   const [workout, setWorkout] = useState<WorkoutDay | null>(null);
   const [nutrition, setNutrition] = useState<NutritionPlanToday | null>(null);
   const [water, setWater] = useState<WaterStatus | null>(null);
@@ -32,8 +34,6 @@ export function DashboardScreen({ navigation }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     const todayKey = new Date().toISOString().split("T")[0];
-
-    // Load saved checklist for today
     try {
       const storedChecklist = await AsyncStorage.getItem(`checklist_${todayKey}`);
       if (storedChecklist) {
@@ -41,12 +41,8 @@ export function DashboardScreen({ navigation }: Props) {
         setChecklistCount(Object.values(parsed).filter(Boolean).length);
       }
       const storedReminders = await AsyncStorage.getItem("user_gym_reminders");
-      if (storedReminders) {
-        setReminders(JSON.parse(storedReminders));
-      }
-    } catch {
-      // Ignored
-    }
+      if (storedReminders) setReminders(JSON.parse(storedReminders));
+    } catch {}
 
     const [w, n, h2o, rem, bp] = await Promise.allSettled([
       endpoints.getTodayWorkout(),
@@ -59,7 +55,6 @@ export function DashboardScreen({ navigation }: Props) {
     let loadedWorkout = w.status === "fulfilled" ? w.value : null;
     let loadedNutrition = n.status === "fulfilled" ? n.value : null;
 
-    // If both are null, attempt auto-generation once
     if (!loadedWorkout && !loadedNutrition) {
       try {
         await endpoints.generatePlan();
@@ -69,364 +64,228 @@ export function DashboardScreen({ navigation }: Props) {
         ]);
         if (wRetry.status === "fulfilled") loadedWorkout = wRetry.value;
         if (nRetry.status === "fulfilled") loadedNutrition = nRetry.value;
-      } catch {
-        // Fallback
-      }
+      } catch {}
     }
 
     setWorkout(loadedWorkout);
     setNutrition(loadedNutrition);
     setWater(h2o.status === "fulfilled" ? h2o.value : null);
-    if (rem.status === "fulfilled" && rem.value) {
-      setReminders(rem.value);
-    }
-    if (bp.status === "fulfilled" && bp.value) {
-      setBlueprint(bp.value);
-    }
-
+    if (rem.status === "fulfilled" && rem.value) setReminders(rem.value);
+    if (bp.status === "fulfilled" && bp.value) setBlueprint(bp.value);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
+  const today = new Date();
+  const dateStr = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const gymTimeDisplay = reminders?.gymTime || "06:00 PM";
+
+  // Theme-derived colors inline
+  const habitPct = (checklistCount / 5) * 100;
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ padding: 20, paddingTop: 60, paddingBottom: 40, gap: 16 }}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.accent} />}
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Today's Routine</Text>
-        <Text style={styles.subtitle}>Your personalized weekly training, nutrition & target physique</Text>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Today</Text>
+          <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>{dateStr}</Text>
+        </View>
+        {/* Dark/Light Toggle */}
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={[styles.themeToggle, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 18 }}>{isDark ? "☀️" : "🌙"}</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Target Body Blueprint Hero Card */}
-      <TouchableOpacity
-        style={styles.targetBodyBanner}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate("Profile")}
-      >
-        <View style={styles.targetBodyHeader}>
-          <View style={styles.targetBodyBadge}>
-            <Text style={styles.targetBodyBadgeText}>
-              {blueprint?.targetPhysique.goalType.replace("_", " ") || "TARGET PHYSIQUE"}
-            </Text>
+      {/* Target Physique Card */}
+      <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate("Profile")}>
+        <GlassCard strong style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>TARGET PHYSIQUE</Text>
+            <Text style={[styles.cardAction, { color: colors.accent }]}>View →</Text>
           </View>
-          <Text style={styles.targetBodyAction}>View Roadmap ➔</Text>
-        </View>
-
-        <Text style={styles.targetBodyDesc}>
-          {blueprint?.targetPhysique.targetDescription ||
-            "Personalized hypertrophy & lean mass transformation plan."}
-        </Text>
-
-        <View style={styles.targetBodyStatsRow}>
-          <View>
-            <Text style={styles.targetBodyStatLabel}>Current</Text>
-            <Text style={styles.targetBodyStatVal}>
-              {blueprint?.currentStats.weightKg || 75} kg
-            </Text>
+          <Text style={[styles.cardBodyText, { color: colors.textSecondary }]} numberOfLines={2}>
+            {blueprint?.targetPhysique.targetDescription || "Personalized hypertrophy and lean mass transformation protocol."}
+          </Text>
+          <View style={[styles.statsRow, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statMeta, { color: colors.textTertiary }]}>Current</Text>
+              <Text style={[styles.statNum, { color: colors.textPrimary }]}>{blueprint?.currentStats.weightKg || 75}<Text style={[styles.statUnit, { color: colors.textSecondary }]}> kg</Text></Text>
+            </View>
+            <Text style={[styles.statArrow, { color: colors.textTertiary }]}>→</Text>
+            <View style={styles.statItem}>
+              <Text style={[styles.statMeta, { color: colors.textTertiary }]}>Target</Text>
+              <Text style={[styles.statNum, { color: colors.accent }]}>{blueprint?.targetPhysique.targetWeightKg || 79}<Text style={[styles.statUnit, { color: colors.textSecondary }]}> kg</Text></Text>
+            </View>
+            <View style={[styles.statItem, { alignItems: "flex-end" }]}>
+              <Text style={[styles.statMeta, { color: colors.textTertiary }]}>Timeline</Text>
+              <Text style={[styles.statNum, { color: colors.textPrimary }]}>{blueprint?.targetPhysique.estimatedWeeks || 12}<Text style={[styles.statUnit, { color: colors.textSecondary }]}> wks</Text></Text>
+            </View>
           </View>
-          <Text style={styles.targetBodyArrow}>➔</Text>
-          <View>
-            <Text style={styles.targetBodyStatLabel}>Target Physique</Text>
-            <Text style={[styles.targetBodyStatVal, { color: colors.primary }]}>
-              {blueprint?.targetPhysique.targetWeightKg || 79} kg
-            </Text>
-          </View>
-          <View>
-            <Text style={styles.targetBodyStatLabel}>Timeline</Text>
-            <Text style={styles.targetBodyStatValSmall}>
-              {blueprint?.targetPhysique.estimatedWeeks || 12} Weeks
-            </Text>
-          </View>
-        </View>
+        </GlassCard>
       </TouchableOpacity>
 
-      {/* Gym Schedule Alert Banner */}
-      <TouchableOpacity
-        style={styles.gymBanner}
-        activeOpacity={0.8}
-        onPress={() => setShowReminderModal(true)}
-      >
-        <View style={styles.gymBannerIcon}>
-          <View style={styles.clockRing}>
-            <View style={styles.clockHandH} />
-            <View style={styles.clockHandM} />
+      {/* Daily Checklist Card */}
+      <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate("Progress" as never)}>
+        <GlassCard style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>DAILY HABITS</Text>
+            <Text style={[styles.cardAction, { color: colors.success }]}>{checklistCount} / 5</Text>
           </View>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.gymBannerTitle}>Gym Session: {gymTimeDisplay}</Text>
-          <Text style={styles.gymBannerSub}>Daily workout scheduled · Tap to adjust</Text>
-        </View>
-        <Text style={styles.gymBannerEdit}>Edit</Text>
+          <View style={[styles.progressTrack, { backgroundColor: colors.glassBackground }]}>
+            <View style={[styles.progressFill, { width: `${habitPct}%` as any, backgroundColor: habitPct >= 100 ? colors.success : colors.accent }]} />
+          </View>
+          <Text style={[styles.cardBodyText, { color: colors.textSecondary }]}>Tap to check off workout, meals, and water →</Text>
+        </GlassCard>
       </TouchableOpacity>
 
-      {/* Daily Habits Checklist Card */}
-      <TouchableOpacity
-        style={styles.habitsCard}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate("Progress")}
-      >
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Text style={styles.habitsTitle}>Daily Habit Checklist</Text>
-          <Text style={styles.habitsScore}>{checklistCount} / 5 Done</Text>
-        </View>
-        <View style={styles.habitsBarBg}>
-          <View style={[styles.habitsBarFill, { width: `${(checklistCount / 5) * 100}%` }]} />
-        </View>
-        <Text style={styles.habitsSub}>Tap to tick off your workout, meals, and hydration ➔</Text>
+      {/* Gym Session Card */}
+      <TouchableOpacity activeOpacity={0.8} onPress={() => setShowReminderModal(true)}>
+        <GlassCard style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>GYM SESSION</Text>
+            <Text style={[styles.cardAction, { color: colors.accent }]}>Adjust →</Text>
+          </View>
+          <Text style={[styles.bigNum, { color: colors.textPrimary }]}>{gymTimeDisplay}</Text>
+        </GlassCard>
       </TouchableOpacity>
 
-      {/* Workout Card */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.card}
-        onPress={() => navigation.navigate("Workout")}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardHeading}>Workout Plan</Text>
-          <Text style={styles.cardAction}>View Week ➔</Text>
-        </View>
-        {workout ? (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardHighlight}>{workout.focus}</Text>
-            <Text style={styles.cardBody}>
-              {workout.exercises.length} exercises scheduled with video form guides
-            </Text>
+      {/* Training Session Card */}
+      <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate("Workout")}>
+        <GlassCard style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>TRAINING</Text>
+            <Text style={[styles.cardAction, { color: colors.accent }]}>View week →</Text>
           </View>
-        ) : (
-          <EmptyState
-            title="Rest & Recovery"
-            description="No workout scheduled for today. Check your full 7-day plan."
-            actionLabel="Open workout tab"
-            onAction={() => navigation.navigate("Workout")}
-          />
-        )}
+          {workout ? (
+            <View style={{ gap: 4 }}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{workout.focus}</Text>
+              <Text style={[styles.cardBodyText, { color: colors.textSecondary }]}>{workout.exercises.length} exercises · Video form guides</Text>
+            </View>
+          ) : (
+            <EmptyState title="Rest & recovery" description="No heavy training today. Mobility and recovery." actionLabel="Open workout" onAction={() => navigation.navigate("Workout")} />
+          )}
+        </GlassCard>
       </TouchableOpacity>
 
       {/* Nutrition Card */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.card}
-        onPress={() => navigation.navigate("Nutrition")}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardHeading}>Nutrition & Recipes</Text>
-          <Text style={styles.cardAction}>View Recipes ➔</Text>
-        </View>
-        {nutrition ? (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardHighlight}>
-              {nutrition.calorieTarget.value} kcal · {nutrition.proteinTargetG.value}g Protein
-            </Text>
-            <Text style={styles.cardBody}>
-              {nutrition.meals.length} meals planned with recipes & YouTube cooking links
-            </Text>
+      <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate("Nutrition")}>
+        <GlassCard style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>NUTRITION</Text>
+            <Text style={[styles.cardAction, { color: colors.accent }]}>View meals →</Text>
           </View>
-        ) : (
-          <EmptyState
-            title="No nutrition plan yet"
-            description="Today's diet and recipes will show up once generated."
-            actionLabel="Open nutrition tab"
-            onAction={() => navigation.navigate("Nutrition")}
-          />
-        )}
+          {nutrition ? (
+            <View style={{ gap: 4 }}>
+              <Text style={[styles.bigNum, { color: colors.textPrimary }]}>
+                {nutrition.calorieTarget.value} <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kcal</Text>
+                {"  "}
+                <Text style={{ color: colors.accent }}>{nutrition.proteinTargetG.value}<Text style={[styles.statUnit, { color: colors.textSecondary }]}>g protein</Text></Text>
+              </Text>
+              <Text style={[styles.cardBodyText, { color: colors.textSecondary }]}>{nutrition.meals.length} meals planned with preparation steps</Text>
+            </View>
+          ) : (
+            <EmptyState title="No nutrition plan yet" description="Meals will appear once your plan is generated." actionLabel="Open nutrition" onAction={() => navigation.navigate("Nutrition")} />
+          )}
+        </GlassCard>
       </TouchableOpacity>
 
-      {/* Water Card */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.card}
-        onPress={() => navigation.navigate("Water")}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardHeading}>Water Hydration</Text>
-          <Text style={styles.cardAction}>Log Water ➔</Text>
-        </View>
-        {water ? (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardHighlightWater}>
-              {water.consumedMl} / {water.targetMl} ml
-            </Text>
-            <Text style={styles.cardBody}>
-              {Math.round((water.consumedMl / water.targetMl) * 100)}% of today's target achieved
-            </Text>
+      {/* Hydration Card */}
+      <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate("Water" as never)}>
+        <GlassCard style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>HYDRATION</Text>
+            <Text style={[styles.cardAction, { color: colors.accent }]}>Log water →</Text>
           </View>
-        ) : (
-          <EmptyState
-            title="Hydration target"
-            description="Log water and stay hydrated throughout the day."
-            actionLabel="Log water"
-            onAction={() => navigation.navigate("Water")}
-          />
-        )}
+          {water ? (
+            <View style={{ gap: 4 }}>
+              <Text style={[styles.bigNum, { color: colors.textPrimary }]}>
+                {water.consumedMl} <Text style={[styles.statUnit, { color: colors.textSecondary }]}>/ {water.targetMl} ml</Text>
+              </Text>
+              <Text style={[styles.cardBodyText, { color: colors.textSecondary }]}>
+                {Math.round((water.consumedMl / water.targetMl) * 100)}% of daily target reached
+              </Text>
+            </View>
+          ) : (
+            <EmptyState title="Hydration" description="Log water throughout the day." actionLabel="Log water" onAction={() => navigation.navigate("Water" as never)} />
+          )}
+        </GlassCard>
       </TouchableOpacity>
 
       <GymReminderModal
         visible={showReminderModal}
         onClose={() => setShowReminderModal(false)}
-        onSaved={(newReminders) => setReminders(newReminders)}
+        onSaved={(r) => setReminders(r)}
       />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { gap: 4 },
-  title: { ...typography.h1, color: colors.textPrimary },
-  subtitle: { color: colors.textMuted, fontSize: 13 },
-  gymBanner: {
+  content: {
+    padding: 20,
+    paddingTop: Platform.OS === "ios" ? 60 : 48,
+    paddingBottom: 100,
+    gap: 12,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  title: { fontSize: 34, fontWeight: "700", letterSpacing: 0.37 },
+  dateLabel: { fontSize: 15, letterSpacing: -0.2, marginTop: 2 },
+  themeToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 0.5,
+    marginTop: 4,
+  },
+  card: { gap: 10 },
+  cardHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.8 },
+  cardAction: { fontSize: 13, fontWeight: "500" },
+  cardTitle: { fontSize: 17, fontWeight: "600", letterSpacing: -0.4 },
+  cardBodyText: { fontSize: 13, lineHeight: 18 },
+  bigNum: { fontSize: 26, fontWeight: "700", letterSpacing: -0.5 },
+  statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    justifyContent: "space-between",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 0.5,
   },
-  gymBannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clockRing: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  clockHandH: {
-    position: "absolute",
-    width: 2,
+  statItem: { gap: 2 },
+  statMeta: { fontSize: 11, fontWeight: "500" },
+  statNum: { fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
+  statUnit: { fontSize: 13, fontWeight: "400" },
+  statArrow: { fontSize: 16 },
+  progressTrack: {
     height: 6,
-    backgroundColor: colors.primary,
-    top: 5,
-    borderRadius: 1,
+    borderRadius: 3,
+    overflow: "hidden",
   },
-  clockHandM: {
-    position: "absolute",
-    width: 6,
-    height: 2,
-    backgroundColor: colors.primary,
-    left: 9,
-    borderRadius: 1,
-  },
-  gymBannerTitle: { color: colors.textPrimary, fontWeight: "700", fontSize: 15 },
-  gymBannerSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  gymBannerEdit: { color: colors.primary, fontWeight: "700", fontSize: 13 },
-  habitsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 10,
-  },
-  habitsTitle: { color: colors.textPrimary, fontWeight: "700", fontSize: 15 },
-  habitsScore: { color: "#10B981", fontWeight: "700", fontSize: 14 },
-  habitsBarBg: { height: 8, backgroundColor: colors.surfaceAlt, borderRadius: 4, overflow: "hidden" },
-  habitsBarFill: { height: "100%", backgroundColor: "#10B981", borderRadius: 4 },
-  habitsSub: { color: colors.textSecondary, fontSize: 12 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardHeading: { ...typography.h2, fontSize: 16, color: colors.textPrimary },
-  cardAction: { color: colors.primary, fontSize: 12, fontWeight: "600" },
-  cardContent: { gap: 4 },
-  cardHighlight: { color: colors.primary, fontSize: 15, fontWeight: "700" },
-  cardHighlightWater: { color: "#38BDF8", fontSize: 18, fontWeight: "700" },
-  cardBody: { color: colors.textSecondary, fontSize: 13 },
-  targetBodyBanner: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-  },
-  targetBodyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  targetBodyBadge: {
-    backgroundColor: `${colors.primary}20`,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  targetBodyBadgeText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  targetBodyAction: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  targetBodyDesc: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "500",
-  },
-  targetBodyStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  targetBodyStatLabel: {
-    color: colors.textMuted,
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  targetBodyStatVal: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "800",
-    marginTop: 2,
-  },
-  targetBodyStatValSmall: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  targetBodyArrow: {
-    color: colors.primary,
-    fontWeight: "800",
-    fontSize: 15,
+  progressFill: {
+    height: "100%",
+    borderRadius: 3,
   },
 });

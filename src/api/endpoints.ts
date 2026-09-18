@@ -57,12 +57,33 @@ export const endpoints = {
       folder,
     }),
 
+  analyzeTargetPhysique: (data: {
+    imageBase64?: string;
+    imageUrl?: string;
+    heightCm?: number;
+    currentWeightKg?: number;
+    sex?: string;
+    goal?: string;
+  }) =>
+    apiClient.post<{
+      physiqueAesthetic: string;
+      targetBodyFatPct: number;
+      targetWeightKg: number;
+      estimatedWeeks: number;
+      standoutMuscles: string[];
+      trainingFocusRecommendations: string[];
+      nutritionStrategy: string;
+      description: string;
+      confidenceScore: number;
+    }>("/analysis/target-physique", data),
+
   getProfile: () => apiClient.get<import("@/types/models").FullProfileData>("/profile"),
 
   editProfile: (data: {
     name?: string;
     age?: number;
     weightKg?: number;
+    targetWeightKg?: number;
     heightCm?: number;
     goal?: string;
     dietaryPreference?: string;

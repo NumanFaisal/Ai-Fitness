@@ -10,8 +10,16 @@ import type { ExperienceLevel, TrainingEnvironment, BudgetTier } from "@/types/m
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, "Questionnaire">;
 
-const EXPERIENCE: ExperienceLevel[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED"];
-const ENVIRONMENTS: TrainingEnvironment[] = ["GYM", "HOME", "OUTDOOR"];
+const EXPERIENCE: { label: string; value: ExperienceLevel }[] = [
+  { label: "Beginner", value: "BEGINNER" },
+  { label: "Intermediate", value: "INTERMEDIATE" },
+  { label: "Advanced", value: "ADVANCED" },
+];
+const ENVIRONMENTS: { label: string; value: TrainingEnvironment }[] = [
+  { label: "Gym", value: "GYM" },
+  { label: "Home", value: "HOME" },
+  { label: "Outdoor", value: "OUTDOOR" },
+];
 const BUDGETS: { label: string; value: BudgetTier }[] = [
   { label: "Low", value: "LOW" },
   { label: "Medium", value: "MEDIUM" },
@@ -73,25 +81,42 @@ export function QuestionnaireScreen({ navigation }: Props) {
       <Text style={styles.label}>Training experience</Text>
       <View style={styles.row}>
         {EXPERIENCE.map((lvl) => (
-          <Chip key={lvl} label={lvl} selected={experienceLevel === lvl} onPress={() => setExperienceLevel(lvl)} />
+          <Chip key={lvl.value} label={lvl.label} selected={experienceLevel === lvl.value} onPress={() => setExperienceLevel(lvl.value)} />
         ))}
       </View>
 
       <Text style={styles.label}>Where do you train?</Text>
       <View style={styles.row}>
         {ENVIRONMENTS.map((env) => (
-          <Chip key={env} label={env} selected={trainingEnvironment === env} onPress={() => setTrainingEnvironment(env)} />
+          <Chip key={env.value} label={env.label} selected={trainingEnvironment === env.value} onPress={() => setTrainingEnvironment(env.value)} />
         ))}
       </View>
 
       <Text style={styles.label}>Workout days per week</Text>
-      <TextInput style={styles.input} keyboardType="number-pad" value={workoutDaysPerWeek} onChangeText={setWorkoutDaysPerWeek} placeholder="e.g. 4" placeholderTextColor={colors.textMuted} />
+      <View style={styles.row}>
+        {["3", "4", "5", "6"].map((d) => (
+          <Chip
+            key={d}
+            label={`${d} days`}
+            selected={workoutDaysPerWeek === d}
+            onPress={() => setWorkoutDaysPerWeek(d)}
+          />
+        ))}
+      </View>
+      <TextInput
+        style={[styles.input, { marginTop: 6 }]}
+        keyboardType="number-pad"
+        value={workoutDaysPerWeek}
+        onChangeText={setWorkoutDaysPerWeek}
+        placeholder="e.g. 5 or 6 days"
+        placeholderTextColor={colors.textMuted}
+      />
 
       <Text style={styles.label}>Session duration (minutes)</Text>
       <TextInput style={styles.input} keyboardType="number-pad" value={sessionDurationMin} onChangeText={setSessionDurationMin} placeholder="e.g. 60" placeholderTextColor={colors.textMuted} />
 
       <Text style={styles.label}>Injuries or physical limitations</Text>
-      <Text style={styles.helper}>Leave blank if none. This can route you to a more conservative plan.</Text>
+      <Text style={styles.helper}>Leave blank if none. This routes you to a conservative baseline.</Text>
       <TextInput style={styles.input} value={injuries} onChangeText={setInjuries} placeholder="e.g. lower back, left knee" placeholderTextColor={colors.textMuted} />
 
       <Text style={styles.label}>Dietary preference</Text>
@@ -114,17 +139,19 @@ export function QuestionnaireScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  title: { ...typography.h1, color: colors.textPrimary },
-  label: { ...typography.caption, color: colors.textSecondary, marginTop: 8 },
-  helper: { fontSize: 12, color: colors.textMuted, marginTop: -8 },
+  container: { flex: 1, backgroundColor: colors.ink },
+  title: { ...typography.h1, color: colors.bone },
+  label: { ...typography.label, color: colors.ash, marginTop: 12, marginBottom: 6 },
+  helper: { fontSize: 13, color: colors.ash, marginBottom: 8, lineHeight: 18 },
   input: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 14,
-    color: colors.textPrimary,
+    color: colors.bone,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.divider,
+    fontSize: 15,
+    fontVariant: ["tabular-nums"],
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });

@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { colors } from "@/theme/colors";
-import { typography } from "@/theme/typography";
+import { useTheme } from "@/store/ThemeContext";
 import { PrimaryButton } from "./PrimaryButton";
 
 // The canonical "no dummy data" pattern. Any screen with nothing real to
@@ -15,12 +14,27 @@ interface Props {
 }
 
 export function EmptyState({ title, description, actionLabel, onAction }: Props) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.glassBackground,
+          borderColor: colors.glassBorder,
+        },
+      ]}
+    >
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
       {actionLabel && onAction ? (
-        <PrimaryButton label={actionLabel} onPress={onAction} style={styles.action} />
+        <PrimaryButton
+          label={actionLabel}
+          onPress={onAction}
+          style={styles.action}
+          size="small"
+        />
       ) : null}
     </View>
   );
@@ -28,17 +42,22 @@ export function EmptyState({ title, description, actionLabel, onAction }: Props)
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    padding: 20,
     borderRadius: 16,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    gap: 8,
+    alignItems: "flex-start",
+    gap: 6,
+    borderWidth: 0.5,
   },
-  title: { ...typography.h2, color: colors.textPrimary, textAlign: "center" },
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.3,
+    textAlign: "left",
+  },
   description: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "left",
   },
-  action: { marginTop: 12 },
+  action: { marginTop: 10 },
 });

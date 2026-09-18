@@ -18,6 +18,14 @@ export function AccountCreationScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    AsyncStorage.getItem("auth_token").then((token) => {
+      if (token) {
+        navigation.replace("ProfileSetup");
+      }
+    });
+  }, [navigation]);
+
   async function handleSubmit() {
     if (!email.includes("@") || password.length < 6) {
       setError("Enter a valid email and a password of at least 6 characters.");
@@ -91,10 +99,10 @@ export function AccountCreationScreen({ navigation }: Props) {
 
       <View style={{ gap: 16 }}>
         {loading ? (
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.brass} />
         ) : (
           <PrimaryButton
-            label={isLogin ? "Log In" : "Create Account & Continue"}
+            label={isLogin ? "Log in" : "Create account & continue"}
             onPress={handleSubmit}
           />
         )}
@@ -109,8 +117,8 @@ export function AccountCreationScreen({ navigation }: Props) {
         >
           <Text style={styles.toggleText}>
             {isLogin
-              ? "Don't have an account? Sign Up"
-              : "Already have an account? Log In"}
+              ? "Don't have an account? Sign up"
+              : "Already have an account? Log in"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -121,24 +129,25 @@ export function AccountCreationScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     padding: 24,
     justifyContent: "space-between",
     paddingTop: 80,
     paddingBottom: 48,
   },
-  title: { ...typography.h1, color: colors.textPrimary },
-  subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 6 },
-  label: { ...typography.caption, color: colors.textSecondary, marginBottom: -4 },
+  title: { ...typography.h1, color: colors.bone },
+  subtitle: { ...typography.body, color: colors.ash, fontSize: 14, marginTop: 6 },
+  label: { ...typography.label, color: colors.ash, marginBottom: 4 },
   input: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 14,
-    color: colors.textPrimary,
+    color: colors.bone,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.divider,
+    fontSize: 15,
   },
-  error: { color: colors.danger, fontSize: 13, marginTop: 4 },
+  error: { color: colors.rust, fontSize: 13, marginTop: 4 },
   toggleBtn: { alignItems: "center", paddingVertical: 8 },
-  toggleText: { color: colors.primary, fontSize: 14, fontWeight: "600" },
+  toggleText: { color: colors.brass, fontSize: 14, fontWeight: "500" },
 });
