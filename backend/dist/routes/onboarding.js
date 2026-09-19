@@ -1,0 +1,494 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.onboardingRouter = void 0;
+const express_1 = require("express");
+const zod_1 = require("zod");
+const auth_1 = require("../middleware/auth");
+const db_1 = require("../db");
+const nutritionEngine_1 = require("../engines/nutritionEngine");
+const workoutEngine_1 = require("../engines/workoutEngine");
+const aiVisionService_1 = require("../services/aiVisionService");
+exports.onboardingRouter = (0, express_1.Router)();
+exports.onboardingRouter.use(auth_1.authMiddleware);
+const UserProfileSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1),
+    age: zod_1.z.number().min(14).max(120),
+    sex: zod_1.z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]),
+    heightCm: zod_1.z.number().min(80).max(250),
+    weightKg: zod_1.z.number().min(30).max(300).optional(),
+    targetWeightKg: zod_1.z.number().min(30).max(300).optional(),
+    targetPhotoUri: zod_1.z.string().optional(),
+    targetPhysique: zod_1.z.any().optional(),
+    userPhysiqueAnalysis: zod_1.z.any().optional(),
+    bodyPhotos: zod_1.z.record(zod_1.z.string()).optional(),
+});
+const FitnessProfileSchema = zod_1.z.object({
+    experienceLevel: zod_1.z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]),
+    trainingEnvironment: zod_1.z.enum(["GYM", "HOME", "OUTDOOR"]),
+    equipmentAvailable: zod_1.z.array(zod_1.z.string()),
+    workoutDaysPerWeek: zod_1.z.number().min(1).max(7),
+    sessionDurationMin: zod_1.z.number().min(15).max(180),
+    injuries: zod_1.z.array(zod_1.z.string()),
+    physicalLimitations: zod_1.z.array(zod_1.z.string()),
+    dietaryPreference: zod_1.z.string(),
+    allergies: zod_1.z.array(zod_1.z.string()),
+    dislikedFoods: zod_1.z.array(zod_1.z.string()),
+    cuisinePreferences: zod_1.z.array(zod_1.z.string()),
+    mealsPerDay: zod_1.z.number().optional(),
+    cookingAbility: zod_1.z.string().optional(),
+    budgetTier: zod_1.z.enum(["LOW", "MEDIUM", "FLEXIBLE"]),
+    targetDate: zod_1.z.string().optional(),
+});
+const GoalSchema = zod_1.z.object({
+    type: zod_1.z.enum([
+        "FAT_LOSS",
+        "MUSCLE_GAIN",
+        "RECOMPOSITION",
+        "STRENGTH",
+        "ENDURANCE",
+        "GENERAL_FITNESS",
+        "ATHLETIC_PERFORMANCE",
+        "MAINTENANCE",
+    ]),
+    isPrimary: zod_1.z.boolean(),
+});
+async function ensureUserExists(userId, email) {
+    try {
+        // 1. Check if user already exists by ID in PostgreSQL
+        const existingById = await db_1.prisma.user.findUnique({ where: { id: userId } });
+        if (existingById)
+            return existingById.id;
+        // 2. Check if a user with this email already exists in PostgreSQL
+        if (email) {
+            const normalizedEmail = email.toLowerCase().trim();
+            const existingByEmail = await db_1.prisma.user.findUnique({ where: { email: normalizedEmail } });
+            if (existingByEmail) {
+                return existingByEmail.id;
+            }
+        }
+        // 3. Create the user safely
+        const userEmail = (email || `${userId}@fitness.local`).toLowerCase().trim();
+        const created = await db_1.prisma.user.create({
+            data: {
+                id: userId,
+                email: userEmail,
+                passwordHash: "dev-password-hash",
+            },
+        });
+        return created.id;
+    }
+    catch (err) {
+        console.warn("ensureUserExists DB notice:", err?.message || err);
+        if (email) {
+            try {
+                const u = await db_1.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+                if (u)
+                    return u.id;
+            }
+            catch { }
+        }
+        return userId;
+    }
+}
+exports.onboardingRouter.post("/profile", async (req, res) => {
+    const parse = UserProfileSchema.safeParse(req.body);
+    if (!parse.success) {
+        return res.status(400).json({ message: "Invalid profile data.", errors: parse.error.format() });
+    }
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    userState.profile = parse.data;
+    if (parse.data.bodyPhotos) {
+        userState.bodyPhotos = parse.data.bodyPhotos;
+    }
+    if (parse.data.userPhysiqueAnalysis) {
+        userState.userPhysiqueAnalysis = parse.data.userPhysiqueAnalysis;
+    }
+    if (parse.data.targetPhysique) {
+        userState.targetPhysique = parse.data.targetPhysique;
+    }
+    (0, db_1.saveUserState)(userId);
+    try {
+        const dbUserId = await ensureUserExists(userId, req.user?.email);
+        const { name, age, sex, heightCm } = parse.data;
+        await db_1.prisma.userProfile.upsert({
+            where: { userId: dbUserId },
+            create: {
+                userId: dbUserId,
+                name,
+                age,
+                sex,
+                heightCm,
+            },
+            update: {
+                name,
+                age,
+                sex,
+                heightCm,
+            },
+        });
+        if (parse.data.weightKg) {
+            await db_1.prisma.weightLog.create({
+                data: {
+                    userId: dbUserId,
+                    weightKg: parse.data.weightKg,
+                },
+            }).catch(() => { });
+        }
+    }
+    catch (err) {
+        console.warn("Profile DB sync notice:", err);
+    }
+    return res.status(204).send();
+});
+exports.onboardingRouter.post("/profile/fitness", async (req, res) => {
+    const parse = FitnessProfileSchema.safeParse(req.body);
+    if (!parse.success) {
+        return res.status(400).json({ message: "Invalid fitness profile data.", errors: parse.error.format() });
+    }
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    userState.fitnessProfile = parse.data;
+    (0, db_1.saveUserState)(userId);
+    try {
+        const dbUserId = await ensureUserExists(userId, req.user?.email);
+        const { experienceLevel, trainingEnvironment, equipmentAvailable, workoutDaysPerWeek, sessionDurationMin, injuries, physicalLimitations, dietaryPreference, allergies, dislikedFoods, cuisinePreferences, mealsPerDay, cookingAbility, budgetTier, targetDate, } = parse.data;
+        const data = {
+            experienceLevel,
+            trainingEnvironment,
+            equipmentAvailable,
+            workoutDaysPerWeek,
+            sessionDurationMin,
+            injuries,
+            physicalLimitations,
+            dietaryPreference,
+            allergies,
+            dislikedFoods,
+            cuisinePreferences,
+            mealsPerDay: mealsPerDay ?? null,
+            cookingAbility: cookingAbility ?? null,
+            budgetTier,
+            targetDate: targetDate ? new Date(targetDate) : null,
+        };
+        await db_1.prisma.fitnessProfile.upsert({
+            where: { userId: dbUserId },
+            create: { userId: dbUserId, ...data },
+            update: data,
+        });
+    }
+    catch (err) {
+        console.warn("Fitness profile DB sync notice:", err);
+    }
+    return res.status(204).send();
+});
+exports.onboardingRouter.post("/goals", async (req, res) => {
+    const parse = GoalSchema.safeParse(req.body);
+    if (!parse.success) {
+        return res.status(400).json({ message: "Invalid goal data.", errors: parse.error.format() });
+    }
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    userState.goal = parse.data;
+    (0, db_1.saveUserState)(userId);
+    try {
+        const dbUserId = await ensureUserExists(userId, req.user?.email);
+        await db_1.prisma.goal.create({
+            data: {
+                userId: dbUserId,
+                type: parse.data.type,
+                isPrimary: parse.data.isPrimary,
+            },
+        });
+    }
+    catch (err) {
+        console.warn("Goal DB sync notice:", err);
+    }
+    return res.status(204).send();
+});
+// POST /analysis/target-physique - Analyze target image, body fat %, and realistic target weight
+exports.onboardingRouter.post("/analysis/target-physique", async (req, res) => {
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    const heightCm = Number(req.body.heightCm) || userState.profile?.heightCm || 175;
+    const currentWeightKg = Number(req.body.currentWeightKg) || userState.profile?.weightKg || 75;
+    const sex = req.body.sex || userState.profile?.sex || "MALE";
+    const goal = req.body.goal || userState.goal?.type || "RECOMPOSITION";
+    const result = await (0, aiVisionService_1.analyzeTargetPhysique)({
+        imageBase64: req.body.imageBase64,
+        imageUrl: req.body.imageUrl,
+        heightCm,
+        currentWeightKg,
+        sex,
+        goal,
+    });
+    userState.targetPhysique = result;
+    if (!userState.profile) {
+        userState.profile = { name: "Athlete", age: 25, sex, heightCm, weightKg: currentWeightKg };
+    }
+    userState.profile.targetWeightKg = result.targetWeightKg;
+    (0, db_1.saveUserState)(userId);
+    return res.json(result);
+});
+// POST /analysis/user-image - Analyze user's actual body photo(s) using Vision AI
+exports.onboardingRouter.post("/analysis/user-image", async (req, res) => {
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    const heightCm = Number(req.body.heightCm) || userState.profile?.heightCm || 175;
+    const currentWeightKg = Number(req.body.currentWeightKg) || userState.profile?.weightKg || 75;
+    const sex = req.body.sex || userState.profile?.sex || "MALE";
+    const age = Number(req.body.age) || userState.profile?.age || 25;
+    const goal = req.body.goal || userState.goal?.type || "RECOMPOSITION";
+    const angle = req.body.angle || "FRONT";
+    const result = await (0, aiVisionService_1.analyzeUserBodyPhoto)({
+        imageBase64: req.body.imageBase64,
+        imageUrl: req.body.imageUrl,
+        angle,
+        heightCm,
+        currentWeightKg,
+        sex,
+        age,
+        goal,
+    });
+    userState.userPhysiqueAnalysis = result;
+    if (req.body.imageBase64 || req.body.imageUrl) {
+        if (!userState.bodyPhotos)
+            userState.bodyPhotos = {};
+        userState.bodyPhotos[angle] = req.body.imageUrl || req.body.imageBase64;
+    }
+    (0, db_1.saveUserState)(userId);
+    return res.json(result);
+});
+// GET /profile - Return current user profile, fitness profile, goals, and image analyses
+exports.onboardingRouter.get("/profile", (req, res) => {
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    return res.json({
+        profile: userState.profile,
+        fitnessProfile: userState.fitnessProfile,
+        goal: userState.goal,
+        targetPhysique: userState.targetPhysique,
+        userPhysiqueAnalysis: userState.userPhysiqueAnalysis,
+        bodyPhotos: userState.bodyPhotos,
+    });
+});
+// GET /profile/target-body - Return comprehensive target body blueprint & roadmap
+exports.onboardingRouter.get("/profile/target-body", (req, res) => {
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    const profile = userState.profile || {
+        name: "Athlete",
+        age: 25,
+        sex: "MALE",
+        heightCm: 178,
+        weightKg: 75,
+    };
+    const fitness = userState.fitnessProfile || {
+        experienceLevel: "BEGINNER",
+        trainingEnvironment: "GYM",
+        equipmentAvailable: ["barbell", "dumbbell"],
+        workoutDaysPerWeek: 4,
+        sessionDurationMin: 45,
+        injuries: [],
+        dietaryPreference: "High Protein",
+        budgetTier: "MEDIUM",
+        targetDate: new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().split("T")[0],
+    };
+    const goal = userState.goal || {
+        type: "MUSCLE_GAIN",
+        isPrimary: true,
+    };
+    const nutrition = userState.nutritionPlan;
+    const targetPhysiqueData = userState.targetPhysique;
+    // Calculate body metrics
+    const heightM = (profile.heightCm || 178) / 100;
+    const currentWeight = profile.weightKg || 75;
+    const currentBmi = Math.round((currentWeight / (heightM * heightM)) * 10) / 10;
+    // Target estimation based on target physique analysis or scientific anthropometrics
+    const explicitTargetWeight = profile?.targetWeightKg || targetPhysiqueData?.targetWeightKg;
+    let targetWeightKg = explicitTargetWeight
+        ? Number(explicitTargetWeight)
+        : (0, aiVisionService_1.calculatePhysiologicalTargetWeight)(profile.heightCm || 178, currentWeight, profile.sex || "MALE", goal.type === "FAT_LOSS" ? 11 : goal.type === "MUSCLE_GAIN" ? 14 : 12, goal.type);
+    let targetDescription = targetPhysiqueData?.description ||
+        "Lean, aesthetic physique with balanced strength, dense muscle, and optimal stamina.";
+    let calorieStrategy = "Maintenance caloric intake with progressive resistance stimulus.";
+    let estimatedWeeks = targetPhysiqueData?.estimatedWeeks || 12;
+    if (targetPhysiqueData?.nutritionStrategy) {
+        calorieStrategy = targetPhysiqueData.nutritionStrategy;
+    }
+    else if (goal.type === "MUSCLE_GAIN" || goal.type === "STRENGTH") {
+        targetDescription = "Hypertrophy focus: Pack on lean muscle mass, broad shoulders, dense chest, and muscular arms while keeping body fat controlled.";
+        calorieStrategy = `Caloric surplus of +250-350 kcal/day (targeting ${nutrition?.calorieTarget?.value || 2700} kcal) to fuel protein synthesis without excess fat gain.`;
+    }
+    else if (goal.type === "FAT_LOSS") {
+        targetDescription = "Fat loss focus: Chiseled abs, lower body fat percentage, vascularity, and defined muscular lines.";
+        calorieStrategy = `Moderate deficit of -400-500 kcal/day (targeting ${nutrition?.calorieTarget?.value || 2100} kcal) while keeping protein high at ${nutrition?.proteinTargetG?.value || 160}g to preserve lean muscle.`;
+    }
+    else if (goal.type === "RECOMPOSITION") {
+        targetDescription = "Body Recomposition: Simultaneously burn stubborn fat while building dense athletic muscle tissue.";
+        calorieStrategy = `Eucaloric target (${nutrition?.calorieTarget?.value || 2400} kcal) with high protein (${nutrition?.proteinTargetG?.value || 165}g) and high workout intensity.`;
+    }
+    const blueprint = {
+        currentStats: {
+            name: profile.name || "Athlete",
+            weightKg: currentWeight,
+            heightCm: profile.heightCm,
+            bmi: currentBmi,
+            age: profile.age,
+            sex: profile.sex,
+        },
+        targetPhysique: {
+            goalType: goal.type,
+            physiqueAesthetic: targetPhysiqueData?.physiqueAesthetic || "Athletic V-Taper Aesthetic",
+            targetWeightKg,
+            targetBodyFatPct: targetPhysiqueData?.targetBodyFatPct || (profile.sex === "FEMALE" ? 19 : 12),
+            standoutMuscles: targetPhysiqueData?.standoutMuscles || ["Upper Chest", "Lateral Delts", "Lats", "Core"],
+            targetDescription,
+            estimatedWeeks,
+            targetDate: fitness.targetDate || new Date(Date.now() + estimatedWeeks * 7 * 24 * 3600 * 1000).toISOString().split("T")[0],
+        },
+        userPhysiqueAnalysis: userState.userPhysiqueAnalysis || null,
+        nutritionBlueprint: {
+            calorieTarget: nutrition?.calorieTarget?.value || 2500,
+            proteinTargetG: nutrition?.proteinTargetG?.value || 160,
+            carbTargetG: nutrition?.carbTargetG?.value || 280,
+            fatTargetG: nutrition?.fatTargetG?.value || 70,
+            strategy: calorieStrategy,
+            dailyMeals: 4,
+            waterTargetMl: 3000,
+        },
+        trainingBlueprint: {
+            environment: fitness.trainingEnvironment,
+            experienceLevel: fitness.experienceLevel,
+            daysPerWeek: fitness.workoutDaysPerWeek,
+            sessionDurationMin: fitness.sessionDurationMin,
+            focusSplit: userState.workoutPlan?.splitType || "PUSH_PULL_LEGS",
+            progressiveOverloadRule: "Add 1-2 reps or 2-5% weight once top of rep range is reached cleanly.",
+            cardioRecommendation: "20-30 min low-intensity steady-state (LISS) cardio 2x/week for cardiovascular recovery.",
+            focusRecommendations: targetPhysiqueData?.trainingFocusRecommendations || [
+                "Prioritize progressive overload on primary compound lifts.",
+                "Include 5-6 structured exercises per session covering compounds, accessories, and core."
+            ],
+        },
+        transformationRoadmap: [
+            {
+                phase: "Phase 1: Adaptation & Neuromuscular Baseline",
+                weeks: "Weeks 1 - 4",
+                objective: "Establish form consistency, neurological muscle recruitment, and habit compliance.",
+                keyMilestone: "Hit daily protein target 6+ days/week; complete all scheduled training sessions.",
+            },
+            {
+                phase: "Phase 2: Progressive Hypertrophy & Overload",
+                weeks: "Weeks 5 - 8",
+                objective: "Maximize mechanical tension and progressive volume on compound exercises.",
+                keyMilestone: "Noticeable increase in lift numbers and visible muscle pump/vascularity.",
+            },
+            {
+                phase: "Phase 3: Body Refinement & Target Physique",
+                weeks: `Weeks 9 - ${estimatedWeeks}`,
+                objective: "Solidify body composition changes, muscle density, and sustainable lifestyle maintenance.",
+                keyMilestone: `Target weight of ${targetWeightKg}kg achieved; compare with day-1 baseline.`,
+            },
+        ],
+        actionableHabits: [
+            `Hit your daily protein target (${nutrition?.proteinTargetG?.value || 160}g) divided across 4 meals.`,
+            "Track progressive overload: log your weights and strive to beat your previous session.",
+            "Drink at least 3,000 ml of water daily to keep muscle cells hydrated.",
+            "Get 7-8 hours of quality sleep for peak growth hormone release and muscle recovery.",
+        ],
+    };
+    return res.json(blueprint);
+});
+// PUT /profile/edit - Update biometrics, goal, preferences and recalibrate plan
+exports.onboardingRouter.put("/profile/edit", async (req, res) => {
+    const userId = req.user.userId;
+    const userState = (0, db_1.getUserState)(userId);
+    const { name, age, weightKg, targetWeightKg, heightCm, goal, dietaryPreference, budgetTier, workoutDaysPerWeek, } = req.body;
+    // 1. Update Profile
+    if (!userState.profile) {
+        userState.profile = {
+            name: name || "Athlete",
+            age: Number(age) || 25,
+            sex: "MALE",
+            heightCm: Number(heightCm) || 175,
+            weightKg: Number(weightKg) || 75,
+        };
+    }
+    else {
+        if (name)
+            userState.profile.name = String(name).trim();
+        if (age)
+            userState.profile.age = Number(age);
+        if (heightCm)
+            userState.profile.heightCm = Number(heightCm);
+        if (weightKg)
+            userState.profile.weightKg = Number(weightKg);
+    }
+    if (targetWeightKg) {
+        userState.profile.targetWeightKg = Number(targetWeightKg);
+        if (userState.targetPhysique) {
+            userState.targetPhysique.targetWeightKg = Number(targetWeightKg);
+        }
+    }
+    // 2. Update Fitness Profile
+    if (!userState.fitnessProfile) {
+        userState.fitnessProfile = {
+            experienceLevel: "INTERMEDIATE",
+            trainingEnvironment: "GYM",
+            equipmentAvailable: ["barbell", "dumbbell"],
+            workoutDaysPerWeek: Number(workoutDaysPerWeek) || 4,
+            sessionDurationMin: 45,
+            injuries: [],
+            physicalLimitations: [],
+            dietaryPreference: dietaryPreference || "None",
+            allergies: [],
+            dislikedFoods: [],
+            cuisinePreferences: [],
+            budgetTier: budgetTier || "MEDIUM",
+        };
+    }
+    else {
+        if (dietaryPreference)
+            userState.fitnessProfile.dietaryPreference = String(dietaryPreference);
+        if (budgetTier)
+            userState.fitnessProfile.budgetTier = budgetTier;
+        if (workoutDaysPerWeek)
+            userState.fitnessProfile.workoutDaysPerWeek = Number(workoutDaysPerWeek);
+    }
+    // 3. Update Goal
+    if (goal) {
+        userState.goal = { type: goal, isPrimary: true };
+    }
+    // 4. Recalibrate Nutrition
+    const recalculatedNutrition = (0, nutritionEngine_1.calculateNutrition)({
+        weightKg: userState.profile.weightKg || 75,
+        heightCm: userState.profile.heightCm || 175,
+        age: userState.profile.age || 25,
+        sex: userState.profile.sex || "MALE",
+        workoutDaysPerWeek: userState.fitnessProfile.workoutDaysPerWeek || 4,
+        goal: userState.goal?.type || "GENERAL_FITNESS",
+        budgetTier: userState.fitnessProfile.budgetTier || "MEDIUM",
+    });
+    userState.nutritionPlan = recalculatedNutrition;
+    // 5. Recalibrate Workout Plan
+    const recalculatedWorkout = (0, workoutEngine_1.generateWorkoutPlan)({
+        experienceLevel: userState.fitnessProfile.experienceLevel || "INTERMEDIATE",
+        trainingEnvironment: userState.fitnessProfile.trainingEnvironment || "GYM",
+        equipmentAvailable: userState.fitnessProfile.equipmentAvailable || ["barbell", "dumbbell"],
+        workoutDaysPerWeek: userState.fitnessProfile.workoutDaysPerWeek || 4,
+        sessionDurationMin: userState.fitnessProfile.sessionDurationMin || 45,
+        injuries: userState.fitnessProfile.injuries || [],
+        goal: userState.goal?.type || "GENERAL_FITNESS",
+    });
+    userState.workoutPlan = recalculatedWorkout;
+    // 6. Persist to Disk Store
+    (0, db_1.saveUserState)(userId);
+    return res.json({
+        success: true,
+        message: "Profile and transformation blueprint updated successfully.",
+        profile: userState.profile,
+        fitnessProfile: userState.fitnessProfile,
+        goal: userState.goal,
+        nutritionPlan: userState.nutritionPlan,
+        workoutPlan: userState.workoutPlan,
+    });
+});
