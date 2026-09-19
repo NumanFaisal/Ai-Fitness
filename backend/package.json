@@ -1,6 +1,7 @@
 {
   "name": "fitness-backend",
   "version": "0.1.0",
+  "main": "dist/server.js",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
