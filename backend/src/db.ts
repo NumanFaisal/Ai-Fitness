@@ -108,17 +108,65 @@ export function createUserAccount(email: string, passwordHash: string, customId?
 
   store._users[id] = account;
 
-  // Link existing plan to new user so they don't start from an empty screen
-  const devState = store["00000000-0000-0000-0000-000000000001"];
-  if (devState && !store[id]) {
-    store[id] = JSON.parse(JSON.stringify(devState));
-  }
-
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), "utf-8");
   return account;
+}
+
+export async function ensureUserExists(userId: string, email?: string): Promise<string> {
+  try {
+    const existingById = await prisma.user.findUnique({ where: { id: userId } });
+    if (existingById) return existingById.id;
+
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (existingByEmail) return existingByEmail.id;
+    }
+
+    const userEmail = (email || `${userId}@fitness.local`).toLowerCase().trim();
+    const created = await prisma.user.create({
+      data: {
+        id: userId,
+        email: userEmail,
+        passwordHash: "dev-password-hash",
+      },
+    });
+    return created.id;
+  } catch (err: any) {
+    console.warn("ensureUserExists DB notice:", err?.message || err);
+    if (email) {
+      try {
+        const u = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+        if (u) return u.id;
+      } catch {}
+    }
+    return userId;
+  }
+}
+
+export async function clearAllDatabaseData(): Promise<{ success: boolean; deletedCount: number }> {
+  try {
+    const deleted = await prisma.user.deleteMany({});
+    await prisma.workoutExercise.deleteMany({}).catch(() => ({ count: 0 }));
+    await prisma.workoutDay.deleteMany({}).catch(() => ({ count: 0 }));
+    await prisma.workoutPlan.deleteMany({}).catch(() => ({ count: 0 }));
+    await prisma.meal.deleteMany({}).catch(() => ({ count: 0 }));
+    await prisma.nutritionPlan.deleteMany({}).catch(() => ({ count: 0 }));
+    await prisma.photoAnalysis.deleteMany({}).catch(() => ({ count: 0 }));
+
+    memoryStore.clear();
+    if (fs.existsSync(STORE_FILE)) {
+      fs.writeFileSync(STORE_FILE, JSON.stringify({}, null, 2), "utf-8");
+    }
+
+    return { success: true, deletedCount: deleted.count };
+  } catch (err: any) {
+    console.error("clearAllDatabaseData error:", err);
+    throw err;
+  }
 }
 
 export function saveUserState(userId: string) {
@@ -231,6 +279,7 @@ export function getUserState(userId: string): UserSessionState {
         workoutPlan: workout,
         waterLogs: [],
         jobs: new Map(),
+        hasCompletedOnboarding: false,
       });
 
       saveUserState(userId);

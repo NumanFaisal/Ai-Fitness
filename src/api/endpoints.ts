@@ -126,4 +126,7 @@ export const endpoints = {
       email,
       password,
     }),
+
+  resetData: () => apiClient.post<{ success: boolean; message: string }>("/reset"),
+  resetAllData: () => apiClient.post<{ success: boolean; message: string; deletedCount?: number }>("/reset-all"),
 };

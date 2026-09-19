@@ -231,6 +231,28 @@ export function ProfileScreen({ navigation }: Props) {
     ]);
   }
 
+  async function handleWipeAndStartFresh() {
+    Alert.alert(
+      "Wipe All Data & Start Fresh",
+      "This will remove your profile, workout plans, and nutrition plans from Supabase so you can start 100% new. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Wipe & Start New",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await endpoints.resetData();
+            } catch {}
+            await AsyncStorage.removeItem("has_completed_onboarding");
+            await AsyncStorage.removeItem("auth_token");
+            (navigation.getParent() as any)?.navigate("Onboarding", { screen: "ProfileSetup" });
+          },
+        },
+      ]
+    );
+  }
+
   const profile = profileData?.profile || blueprint?.currentStats;
   const fitness = profileData?.fitnessProfile;
   const goal = profileData?.goal;
@@ -534,7 +556,14 @@ export function ProfileScreen({ navigation }: Props) {
             ]);
           }} size="large" />
 
-          <PrimaryButton label="Sign Out" variant="destructive" onPress={handleLogout} size="large" />
+          <PrimaryButton
+            label="Wipe All Data & Start Fresh"
+            variant="destructive"
+            onPress={handleWipeAndStartFresh}
+            size="large"
+          />
+
+          <PrimaryButton label="Sign Out" variant="secondary" onPress={handleLogout} size="large" />
         </View>
       )}
 

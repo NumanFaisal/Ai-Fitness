@@ -267,6 +267,18 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutPlanOutpu
     return null;
   };
 
+  const guaranteeFiveToSixExercises = (selected: ExerciseCatalogItem[], usedSlugs: Set<string>) => {
+    while (selected.length < 5 && availableExercises.length > selected.length) {
+      const extra = availableExercises.find((e) => !usedSlugs.has(e.slug)) || EXERCISE_CATALOG.find((e) => !usedSlugs.has(e.slug));
+      if (!extra) break;
+      usedSlugs.add(extra.slug);
+      selected.push(extra);
+    }
+    if (selected.length > 6) {
+      selected.splice(6);
+    }
+  };
+
   const days: PlannedWorkoutDay[] = [];
   let splitType: WorkoutPlanOutput["splitType"] = "FULL_BODY";
 
@@ -310,6 +322,8 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutPlanOutpu
         const picked = pickNextExercise(muscleList, usedSlugs, slotIdx);
         if (picked) selected.push(picked);
       });
+
+      guaranteeFiveToSixExercises(selected, usedSlugs);
 
       days.push({
         dayOfWeek: dayNum,
@@ -379,6 +393,8 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutPlanOutpu
         const picked = pickNextExercise(mList, usedSlugs, i);
         if (picked) selected.push(picked);
       });
+
+      guaranteeFiveToSixExercises(selected, usedSlugs);
 
       days.push({
         dayOfWeek: cfg.day,
@@ -484,6 +500,8 @@ export function generateWorkoutPlan(input: WorkoutEngineInput): WorkoutPlanOutpu
         const picked = pickNextExercise(mList, usedSlugs, i);
         if (picked) selected.push(picked);
       });
+
+      guaranteeFiveToSixExercises(selected, usedSlugs);
 
       days.push({
         dayOfWeek: cfg.day,

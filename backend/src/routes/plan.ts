@@ -1,7 +1,7 @@
 import { Router, Response } from "express";
 import { AuthRequest } from "../types";
 import { authMiddleware } from "../middleware/auth";
-import { getUserState, saveUserState } from "../db";
+import { getUserState, saveUserState, prisma, ensureUserExists } from "../db";
 import { evaluateSafetyGate } from "../engines/safetyGate";
 import { calculateNutrition } from "../engines/nutritionEngine";
 import { calculateHydration } from "../engines/hydrationEngine";
@@ -16,6 +16,68 @@ import { analyzeUserBodyPhoto } from "../services/aiVisionService";
 export const planRouter = Router();
 
 planRouter.use(authMiddleware);
+
+async function persistPlanToSupabase(userId: string, email: string | undefined, workout: any, nutrition: any) {
+  try {
+    const dbUserId = await ensureUserExists(userId, email);
+
+    if (workout?.days && workout.days.length > 0) {
+      await prisma.workoutPlan.deleteMany({ where: { userId: dbUserId } }).catch(() => {});
+      await prisma.workoutPlan.create({
+        data: {
+          userId: dbUserId,
+          status: "ACTIVE",
+          startDate: new Date(),
+          generatedBy: workout.generatedBy || "AI_VISION_AND_PROFILE_ENGINE",
+          days: {
+            create: workout.days.map((d: any) => ({
+              dayOfWeek: d.dayOfWeek,
+              focus: d.focus,
+              exercises: {
+                create: d.exercises.map((ex: any, idx: number) => ({
+                  exercise: {
+                    connectOrCreate: {
+                      where: { slug: ex.exerciseSlug || ex.exerciseName.toLowerCase().replace(/[^a-z0-9]/g, "_") },
+                      create: {
+                        name: ex.exerciseName,
+                        slug: ex.exerciseSlug || ex.exerciseName.toLowerCase().replace(/[^a-z0-9]/g, "_"),
+                        primaryMuscle: ex.primaryMuscle || "Compound",
+                        instructions: ex.progressionNote || "Standard form and full ROM.",
+                      },
+                    },
+                  },
+                  sets: ex.sets,
+                  repRangeLow: ex.repRangeLow,
+                  repRangeHigh: ex.repRangeHigh,
+                  restSeconds: ex.restSeconds,
+                  rpeTarget: ex.rpeTarget,
+                  orderIndex: idx + 1,
+                })),
+              },
+            })),
+          },
+        },
+      });
+    }
+
+    if (nutrition?.calorieTarget?.value) {
+      await prisma.nutritionPlan.deleteMany({ where: { userId: dbUserId } }).catch(() => {});
+      await prisma.nutritionPlan.create({
+        data: {
+          userId: dbUserId,
+          status: "ACTIVE",
+          calorieTarget: nutrition.calorieTarget.value,
+          proteinTargetG: nutrition.proteinTargetG.value,
+          carbTargetG: nutrition.carbTargetG.value,
+          fatTargetG: nutrition.fatTargetG.value,
+          startDate: new Date(),
+        },
+      });
+    }
+  } catch (err) {
+    console.warn("[Plan Route] Supabase persistence notice:", err);
+  }
+}
 
 // POST /analysis/start
 planRouter.post("/analysis/start", async (req: AuthRequest, res: Response) => {
@@ -117,6 +179,7 @@ planRouter.post("/analysis/start", async (req: AuthRequest, res: Response) => {
       });
 
       saveUserState(userId);
+      await persistPlanToSupabase(userId, req.user?.email, workout, nutrition);
     } catch (err: any) {
       console.error("Analysis job error:", err);
       userState.jobs.set(jobId, {
@@ -275,6 +338,7 @@ planRouter.post("/plan/generate", async (req: AuthRequest, res: Response) => {
   });
 
   saveUserState(userId);
+  await persistPlanToSupabase(userId, req.user?.email, workout, nutrition);
 
   return res.json({
     jobId,

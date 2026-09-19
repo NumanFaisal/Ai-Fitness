@@ -167,6 +167,18 @@ function generateWorkoutPlan(input) {
         // 6. If all exercises are exhausted, return null to reduce count — NEVER repeat an exercise
         return null;
     };
+    const guaranteeFiveToSixExercises = (selected, usedSlugs) => {
+        while (selected.length < 5 && availableExercises.length > selected.length) {
+            const extra = availableExercises.find((e) => !usedSlugs.has(e.slug)) || exerciseCatalog_1.EXERCISE_CATALOG.find((e) => !usedSlugs.has(e.slug));
+            if (!extra)
+                break;
+            usedSlugs.add(extra.slug);
+            selected.push(extra);
+        }
+        if (selected.length > 6) {
+            selected.splice(6);
+        }
+    };
     const days = [];
     let splitType = "FULL_BODY";
     if (workoutDaysPerWeek <= 3) {
@@ -208,6 +220,7 @@ function generateWorkoutPlan(input) {
                 if (picked)
                     selected.push(picked);
             });
+            guaranteeFiveToSixExercises(selected, usedSlugs);
             days.push({
                 dayOfWeek: dayNum,
                 focus: `Full Body Aesthetic Routine ${String.fromCharCode(65 + idx)}`,
@@ -276,6 +289,7 @@ function generateWorkoutPlan(input) {
                 if (picked)
                     selected.push(picked);
             });
+            guaranteeFiveToSixExercises(selected, usedSlugs);
             days.push({
                 dayOfWeek: cfg.day,
                 focus: cfg.focus,
@@ -380,6 +394,7 @@ function generateWorkoutPlan(input) {
                 if (picked)
                     selected.push(picked);
             });
+            guaranteeFiveToSixExercises(selected, usedSlugs);
             days.push({
                 dayOfWeek: cfg.day,
                 focus: cfg.focus,

@@ -10,6 +10,59 @@ const workoutEngine_1 = require("../engines/workoutEngine");
 const aiVisionService_1 = require("../services/aiVisionService");
 exports.onboardingRouter = (0, express_1.Router)();
 exports.onboardingRouter.use(auth_1.authMiddleware);
+// POST /onboarding/reset - Reset current user's profile and plan data from Supabase and cache
+exports.onboardingRouter.post("/reset", async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const email = req.user?.email;
+        try {
+            const existing = await db_1.prisma.user.findFirst({
+                where: { OR: [{ id: userId }, ...(email ? [{ email: email.toLowerCase().trim() }] : [])] },
+            });
+            if (existing) {
+                await db_1.prisma.user.delete({ where: { id: existing.id } });
+            }
+        }
+        catch (e) {
+            console.warn("Prisma user delete notice:", e);
+        }
+        const userState = (0, db_1.getUserState)(userId);
+        userState.hasCompletedOnboarding = false;
+        userState.workoutPlan = undefined;
+        userState.nutritionPlan = undefined;
+        userState.profile = undefined;
+        userState.fitnessProfile = undefined;
+        userState.goal = undefined;
+        userState.bodyPhotos = undefined;
+        userState.aiPlan = undefined;
+        userState.aiMeals = undefined;
+        userState.userPhysiqueAnalysis = undefined;
+        userState.targetPhysique = undefined;
+        (0, db_1.saveUserState)(userId);
+        return res.json({
+            success: true,
+            message: "All profile and plan data successfully removed. Ready to start new onboarding.",
+        });
+    }
+    catch (err) {
+        console.error("Reset error:", err);
+        return res.status(500).json({ error: "Failed to reset data.", details: err?.message || err });
+    }
+});
+// POST /onboarding/reset-all - Completely wipe all data from Supabase to start 100% clean
+exports.onboardingRouter.post("/reset-all", async (req, res) => {
+    try {
+        const result = await (0, db_1.clearAllDatabaseData)();
+        return res.json({
+            success: true,
+            message: "Entire Supabase database and local store wiped clean.",
+            deletedCount: result.deletedCount,
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ error: "Failed to wipe database.", details: err?.message || err });
+    }
+});
 const UserProfileSchema = zod_1.z.object({
     name: zod_1.z.string().min(1),
     age: zod_1.z.number().min(14).max(120),
@@ -52,44 +105,6 @@ const GoalSchema = zod_1.z.object({
     ]),
     isPrimary: zod_1.z.boolean(),
 });
-async function ensureUserExists(userId, email) {
-    try {
-        // 1. Check if user already exists by ID in PostgreSQL
-        const existingById = await db_1.prisma.user.findUnique({ where: { id: userId } });
-        if (existingById)
-            return existingById.id;
-        // 2. Check if a user with this email already exists in PostgreSQL
-        if (email) {
-            const normalizedEmail = email.toLowerCase().trim();
-            const existingByEmail = await db_1.prisma.user.findUnique({ where: { email: normalizedEmail } });
-            if (existingByEmail) {
-                return existingByEmail.id;
-            }
-        }
-        // 3. Create the user safely
-        const userEmail = (email || `${userId}@fitness.local`).toLowerCase().trim();
-        const created = await db_1.prisma.user.create({
-            data: {
-                id: userId,
-                email: userEmail,
-                passwordHash: "dev-password-hash",
-            },
-        });
-        return created.id;
-    }
-    catch (err) {
-        console.warn("ensureUserExists DB notice:", err?.message || err);
-        if (email) {
-            try {
-                const u = await db_1.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
-                if (u)
-                    return u.id;
-            }
-            catch { }
-        }
-        return userId;
-    }
-}
 exports.onboardingRouter.post("/profile", async (req, res) => {
     const parse = UserProfileSchema.safeParse(req.body);
     if (!parse.success) {
@@ -109,7 +124,7 @@ exports.onboardingRouter.post("/profile", async (req, res) => {
     }
     (0, db_1.saveUserState)(userId);
     try {
-        const dbUserId = await ensureUserExists(userId, req.user?.email);
+        const dbUserId = await (0, db_1.ensureUserExists)(userId, req.user?.email);
         const { name, age, sex, heightCm } = parse.data;
         await db_1.prisma.userProfile.upsert({
             where: { userId: dbUserId },
@@ -151,7 +166,7 @@ exports.onboardingRouter.post("/profile/fitness", async (req, res) => {
     userState.fitnessProfile = parse.data;
     (0, db_1.saveUserState)(userId);
     try {
-        const dbUserId = await ensureUserExists(userId, req.user?.email);
+        const dbUserId = await (0, db_1.ensureUserExists)(userId, req.user?.email);
         const { experienceLevel, trainingEnvironment, equipmentAvailable, workoutDaysPerWeek, sessionDurationMin, injuries, physicalLimitations, dietaryPreference, allergies, dislikedFoods, cuisinePreferences, mealsPerDay, cookingAbility, budgetTier, targetDate, } = parse.data;
         const data = {
             experienceLevel,
@@ -191,7 +206,7 @@ exports.onboardingRouter.post("/goals", async (req, res) => {
     userState.goal = parse.data;
     (0, db_1.saveUserState)(userId);
     try {
-        const dbUserId = await ensureUserExists(userId, req.user?.email);
+        const dbUserId = await (0, db_1.ensureUserExists)(userId, req.user?.email);
         await db_1.prisma.goal.create({
             data: {
                 userId: dbUserId,

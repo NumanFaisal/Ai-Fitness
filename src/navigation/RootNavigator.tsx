@@ -143,18 +143,18 @@ export function RootNavigator() {
   useEffect(() => {
     async function checkStatus() {
       try {
-        const localVal = await AsyncStorage.getItem("has_completed_onboarding");
-        if (localVal === "true") {
-          setHasCompletedOnboarding(true);
-          setLoading(false);
-          return;
-        }
-        const status = await endpoints.getUserStatus();
-        if (status?.hasPlan || status?.hasCompletedOnboarding) {
-          await AsyncStorage.setItem("has_completed_onboarding", "true");
-          setHasCompletedOnboarding(true);
+        const status = await endpoints.getUserStatus().catch(() => null);
+        if (status) {
+          if (status.hasPlan || status.hasCompletedOnboarding) {
+            await AsyncStorage.setItem("has_completed_onboarding", "true");
+            setHasCompletedOnboarding(true);
+          } else {
+            await AsyncStorage.removeItem("has_completed_onboarding");
+            setHasCompletedOnboarding(false);
+          }
         } else {
-          setHasCompletedOnboarding(false);
+          const localVal = await AsyncStorage.getItem("has_completed_onboarding");
+          setHasCompletedOnboarding(localVal === "true");
         }
       } catch {
         const localVal = await AsyncStorage.getItem("has_completed_onboarding");

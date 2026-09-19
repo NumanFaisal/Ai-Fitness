@@ -184,7 +184,7 @@ RULES:
 2. Select exercises compatible with the user's available equipment: [${training.equipmentAvailable.join(", ")}].
 3. Strictly avoid exercises conflicting with these injuries/limitations: [${injuries.length ? injuries.join(", ") : "None"}].
 4. Strictly respect workout days per week: exactly ${training.workoutDaysPerWeek} days.
-5. Provide 5 to 6 distinct, high-impact exercises per session. No duplicate exercises in the same session.
+5. Provide strictly 5 to 6 distinct, high-impact exercises per workout session (CRITICAL: NEVER generate 3 or 4 exercises). No duplicate exercises in the same session. Structure each session with: 2 compound foundation lifts, 2 hypertrophy accessory exercises, and 1-2 isolation/core movements.
 6. Provide specific, tailored coaching cues for every exercise addressing their visual posture and target muscle activation.
 
 Return ONLY a single valid JSON object matching this schema without markdown code fences or conversational prose:
@@ -336,6 +336,29 @@ Generate the complete, non-hardcoded ${training.workoutDaysPerWeek}-day training
             orderIndex: i + 1,
             progressionNote: rawEx.coachingCue || `Focus on controlled eccentric phase and full range of motion.`,
           });
+        }
+
+        // Guarantee strictly 5 to 6 exercises per session (never 3 or 4)
+        while (exercises.length < 5 && activePool.length > exercises.length) {
+          const nextCatalog = activePool.find((e) => !usedSlugs.has(e.slug));
+          if (!nextCatalog) break;
+          usedSlugs.add(nextCatalog.slug);
+          exercises.push({
+            exerciseName: nextCatalog.name,
+            exerciseSlug: nextCatalog.slug,
+            mediaUri: nextCatalog.media.storageKey,
+            sets: Math.min(safety.maxSetsPerExercise || 4, 3),
+            repRangeLow: 8,
+            repRangeHigh: 12,
+            restSeconds: 75,
+            rpeTarget: Math.min(safety.maxRPE || 9.0, 8.0),
+            orderIndex: exercises.length + 1,
+            progressionNote: `Complementary movement targeting ${nextCatalog.primaryMuscle} with strict mechanical tension.`,
+          });
+        }
+
+        if (exercises.length > 6) {
+          exercises.splice(6);
         }
 
         plannedDays.push({
@@ -516,6 +539,29 @@ function generateDynamicSynthesizedWorkout(
         orderIndex: i + 1,
         progressionNote: `Calibrated for ${goal.type.replace("_", " ").toLowerCase()} with strict mechanical tension.`,
       });
+    }
+
+    // Guarantee strictly 5 to 6 exercises per session (never 3 or 4)
+    while (exercises.length < 5 && pool.length > exercises.length) {
+      const extra = pool.find((e) => !usedSlugs.has(e.slug)) || EXERCISE_CATALOG.find((e) => !usedSlugs.has(e.slug));
+      if (!extra) break;
+      usedSlugs.add(extra.slug);
+      exercises.push({
+        exerciseName: extra.name,
+        exerciseSlug: extra.slug,
+        mediaUri: extra.media.storageKey,
+        sets: defaultSets,
+        repRangeLow: repLow,
+        repRangeHigh: repHigh,
+        restSeconds: restSec,
+        rpeTarget: defaultRpe,
+        orderIndex: exercises.length + 1,
+        progressionNote: `Targeted auxiliary movement for ${extra.primaryMuscle}.`,
+      });
+    }
+
+    if (exercises.length > 6) {
+      exercises.splice(6);
     }
 
     plannedDays.push({

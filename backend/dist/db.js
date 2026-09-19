@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.prisma = exports.sql = void 0;
 exports.findUserByEmail = findUserByEmail;
 exports.createUserAccount = createUserAccount;
+exports.ensureUserExists = ensureUserExists;
+exports.clearAllDatabaseData = clearAllDatabaseData;
 exports.saveUserState = saveUserState;
 exports.getUserState = getUserState;
 const client_1 = require("@prisma/client");
@@ -63,16 +65,65 @@ function createUserAccount(email, passwordHash, customId) {
         }
     }
     store._users[id] = account;
-    // Link existing plan to new user so they don't start from an empty screen
-    const devState = store["00000000-0000-0000-0000-000000000001"];
-    if (devState && !store[id]) {
-        store[id] = JSON.parse(JSON.stringify(devState));
-    }
     if (!fs_1.default.existsSync(DATA_DIR)) {
         fs_1.default.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs_1.default.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), "utf-8");
     return account;
+}
+async function ensureUserExists(userId, email) {
+    try {
+        const existingById = await exports.prisma.user.findUnique({ where: { id: userId } });
+        if (existingById)
+            return existingById.id;
+        if (email) {
+            const normalizedEmail = email.toLowerCase().trim();
+            const existingByEmail = await exports.prisma.user.findUnique({ where: { email: normalizedEmail } });
+            if (existingByEmail)
+                return existingByEmail.id;
+        }
+        const userEmail = (email || `${userId}@fitness.local`).toLowerCase().trim();
+        const created = await exports.prisma.user.create({
+            data: {
+                id: userId,
+                email: userEmail,
+                passwordHash: "dev-password-hash",
+            },
+        });
+        return created.id;
+    }
+    catch (err) {
+        console.warn("ensureUserExists DB notice:", err?.message || err);
+        if (email) {
+            try {
+                const u = await exports.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+                if (u)
+                    return u.id;
+            }
+            catch { }
+        }
+        return userId;
+    }
+}
+async function clearAllDatabaseData() {
+    try {
+        const deleted = await exports.prisma.user.deleteMany({});
+        await exports.prisma.workoutExercise.deleteMany({}).catch(() => ({ count: 0 }));
+        await exports.prisma.workoutDay.deleteMany({}).catch(() => ({ count: 0 }));
+        await exports.prisma.workoutPlan.deleteMany({}).catch(() => ({ count: 0 }));
+        await exports.prisma.meal.deleteMany({}).catch(() => ({ count: 0 }));
+        await exports.prisma.nutritionPlan.deleteMany({}).catch(() => ({ count: 0 }));
+        await exports.prisma.photoAnalysis.deleteMany({}).catch(() => ({ count: 0 }));
+        memoryStore.clear();
+        if (fs_1.default.existsSync(STORE_FILE)) {
+            fs_1.default.writeFileSync(STORE_FILE, JSON.stringify({}, null, 2), "utf-8");
+        }
+        return { success: true, deletedCount: deleted.count };
+    }
+    catch (err) {
+        console.error("clearAllDatabaseData error:", err);
+        throw err;
+    }
 }
 function saveUserState(userId) {
     try {
@@ -182,6 +233,7 @@ function getUserState(userId) {
                 workoutPlan: workout,
                 waterLogs: [],
                 jobs: new Map(),
+                hasCompletedOnboarding: false,
             });
             saveUserState(userId);
         }

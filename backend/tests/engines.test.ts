@@ -719,5 +719,32 @@ describe("AI Body Image Vision Analysis & Dynamic Workout Planning", () => {
       );
     }
   });
+
+  it("guarantees strictly 5 to 6 exercises per workout day across 3, 4, 5, and 6-day splits (never 3 or 4)", async () => {
+    const frequencies = [3, 4, 5, 6];
+    for (const daysPerWeek of frequencies) {
+      const plan = await generateDynamicWorkoutPlan({
+        userId: `test_freq_${daysPerWeek}`,
+        profile: { name: "Aesthetic Athlete", age: 24, sex: "MALE", heightCm: 180, weightKg: 80 },
+        goal: { type: "MUSCLE_GAIN" },
+        training: {
+          experienceLevel: "INTERMEDIATE",
+          trainingEnvironment: "GYM",
+          equipmentAvailable: ["barbell", "dumbbell", "cables", "machine", "bench", "pullup_bar"],
+          workoutDaysPerWeek: daysPerWeek,
+          sessionDurationMin: 60,
+        },
+        safety: { conservativeMode: false, injuries: [] },
+      });
+
+      assert.equal(plan.days.length, daysPerWeek);
+      for (const day of plan.days) {
+        assert.ok(
+          day.exercises.length >= 5 && day.exercises.length <= 6,
+          `Split ${daysPerWeek} days/wk: Day ${day.dayOfWeek} must have 5 or 6 exercises, but had ${day.exercises.length}`
+        );
+      }
+    }
+  });
 });
 

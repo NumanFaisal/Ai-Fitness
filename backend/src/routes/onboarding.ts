@@ -2,7 +2,7 @@ import { Router, Response } from "express";
 import { z } from "zod";
 import { AuthRequest } from "../types";
 import { authMiddleware } from "../middleware/auth";
-import { prisma, getUserState, saveUserState } from "../db";
+import { prisma, getUserState, saveUserState, ensureUserExists, clearAllDatabaseData } from "../db";
 import { calculateNutrition } from "../engines/nutritionEngine";
 import { generateWorkoutPlan } from "../engines/workoutEngine";
 import { analyzeTargetPhysique, analyzeUserBodyPhoto, calculatePhysiologicalTargetWeight } from "../services/aiVisionService";
@@ -10,6 +10,61 @@ import { analyzeTargetPhysique, analyzeUserBodyPhoto, calculatePhysiologicalTarg
 export const onboardingRouter = Router();
 
 onboardingRouter.use(authMiddleware);
+
+// POST /onboarding/reset - Reset current user's profile and plan data from Supabase and cache
+onboardingRouter.post("/reset", async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const email = req.user?.email;
+
+    try {
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ id: userId }, ...(email ? [{ email: email.toLowerCase().trim() }] : [])] },
+      });
+      if (existing) {
+        await prisma.user.delete({ where: { id: existing.id } });
+      }
+    } catch (e) {
+      console.warn("Prisma user delete notice:", e);
+    }
+
+    const userState = getUserState(userId);
+    userState.hasCompletedOnboarding = false;
+    userState.workoutPlan = undefined;
+    userState.nutritionPlan = undefined;
+    userState.profile = undefined;
+    userState.fitnessProfile = undefined;
+    userState.goal = undefined;
+    userState.bodyPhotos = undefined;
+    (userState as any).aiPlan = undefined;
+    (userState as any).aiMeals = undefined;
+    (userState as any).userPhysiqueAnalysis = undefined;
+    (userState as any).targetPhysique = undefined;
+    saveUserState(userId);
+
+    return res.json({
+      success: true,
+      message: "All profile and plan data successfully removed. Ready to start new onboarding.",
+    });
+  } catch (err: any) {
+    console.error("Reset error:", err);
+    return res.status(500).json({ error: "Failed to reset data.", details: err?.message || err });
+  }
+});
+
+// POST /onboarding/reset-all - Completely wipe all data from Supabase to start 100% clean
+onboardingRouter.post("/reset-all", async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await clearAllDatabaseData();
+    return res.json({
+      success: true,
+      message: "Entire Supabase database and local store wiped clean.",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to wipe database.", details: err?.message || err });
+  }
+});
 
 const UserProfileSchema = z.object({
   name: z.string().min(1),
@@ -55,43 +110,6 @@ const GoalSchema = z.object({
   ]),
   isPrimary: z.boolean(),
 });
-
-async function ensureUserExists(userId: string, email?: string): Promise<string> {
-  try {
-    // 1. Check if user already exists by ID in PostgreSQL
-    const existingById = await prisma.user.findUnique({ where: { id: userId } });
-    if (existingById) return existingById.id;
-
-    // 2. Check if a user with this email already exists in PostgreSQL
-    if (email) {
-      const normalizedEmail = email.toLowerCase().trim();
-      const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-      if (existingByEmail) {
-        return existingByEmail.id;
-      }
-    }
-
-    // 3. Create the user safely
-    const userEmail = (email || `${userId}@fitness.local`).toLowerCase().trim();
-    const created = await prisma.user.create({
-      data: {
-        id: userId,
-        email: userEmail,
-        passwordHash: "dev-password-hash",
-      },
-    });
-    return created.id;
-  } catch (err: any) {
-    console.warn("ensureUserExists DB notice:", err?.message || err);
-    if (email) {
-      try {
-        const u = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
-        if (u) return u.id;
-      } catch {}
-    }
-    return userId;
-  }
-}
 
 onboardingRouter.post("/profile", async (req: AuthRequest, res: Response) => {
   const parse = UserProfileSchema.safeParse(req.body);

@@ -1,1441 +1,4 @@
 {
-  "00000000-0000-0000-0000-000000000001": {
-    "profile": {
-      "name": "Numan Faisal",
-      "age": 23,
-      "sex": "MALE",
-      "heightCm": 186,
-      "weightKg": 95
-    },
-    "fitnessProfile": {
-      "experienceLevel": "INTERMEDIATE",
-      "trainingEnvironment": "GYM",
-      "equipmentAvailable": [],
-      "workoutDaysPerWeek": 5,
-      "sessionDurationMin": 90,
-      "injuries": [],
-      "physicalLimitations": [],
-      "dietaryPreference": "Omnivore ",
-      "allergies": [
-        "No"
-      ],
-      "dislikedFoods": [],
-      "cuisinePreferences": [],
-      "budgetTier": "LOW"
-    },
-    "goal": {
-      "type": "RECOMPOSITION",
-      "isPrimary": true
-    },
-    "nutritionPlan": {
-      "bmr": 2003,
-      "tdee": 3104,
-      "calorieTarget": {
-        "value": 2546,
-        "provenance": "CALCULATED"
-      },
-      "proteinTargetG": {
-        "value": 190,
-        "provenance": "CALCULATED"
-      },
-      "carbTargetG": {
-        "value": 286,
-        "provenance": "CALCULATED"
-      },
-      "fatTargetG": {
-        "value": 71,
-        "provenance": "CALCULATED"
-      },
-      "budgetTier": "LOW",
-      "recommendedMealSlots": [
-        "Breakfast",
-        "Lunch",
-        "Pre-Workout Snack",
-        "Dinner"
-      ]
-    },
-    "workoutPlan": {
-      "splitType": "PUSH_PULL_LEGS",
-      "days": [
-        {
-          "dayOfWeek": 1,
-          "focus": "Push (Chest, Shoulders, Triceps)",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Overhead Dumbbell Shoulder Press",
-              "exerciseSlug": "dumbbell-shoulder-press",
-              "mediaUri": "exercises/dumbbell-shoulder-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 2,
-          "focus": "Pull (Back, Biceps)",
-          "exercises": [
-            {
-              "exerciseName": "Romanian Deadlift",
-              "exerciseSlug": "romanian-deadlift",
-              "mediaUri": "exercises/romanian-deadlift.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Lat Pulldown / Pull-Up",
-              "exerciseSlug": "lat-pulldown",
-              "mediaUri": "exercises/lat-pulldown.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 3,
-          "focus": "Legs & Core",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 4,
-          "focus": "Push (Hypertrophy)",
-          "exercises": [
-            {
-              "exerciseName": "Dumbbell Incline Bench Press",
-              "exerciseSlug": "dumbbell-incline-press",
-              "mediaUri": "exercises/dumbbell-incline-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Dumbbell Lateral Raise",
-              "exerciseSlug": "dumbbell-lateral-raise",
-              "mediaUri": "exercises/dumbbell-lateral-raise.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 5,
-          "focus": "Pull (Hypertrophy)",
-          "exercises": [
-            {
-              "exerciseName": "Lat Pulldown / Pull-Up",
-              "exerciseSlug": "lat-pulldown",
-              "mediaUri": "exercises/lat-pulldown.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
-            }
-          ]
-        }
-      ],
-      "generatedBy": "Deterministic Training Engine v1.0"
-    },
-    "waterLogs": [],
-    "aiPlan": {
-      "coachNarrative": "This program is calibrated for your recomposition objective, targeting 2594 kcal and 150g protein. Focus on technical execution on today's Push (Chest, Shoulders, Triceps) session and prioritize progressive overload with adequate recovery.",
-      "workoutFocus": "Push (Chest, Shoulders, Triceps)",
-      "workoutCues": [
-        "Control the eccentric (lowering) phase for 2-3 seconds to maximize mechanical tension.",
-        "Take full rest intervals between compound sets to maintain force output across all prescribed sets.",
-        "Stop 1-2 reps shy of failure on compound lifts to maintain clean form and joint longevity."
-      ],
-      "meals": [
-        {
-          "mealSlot": "BREAKFAST",
-          "recipeTitle": "High-Protein Power Oats & Egg Whites",
-          "ingredients": [
-            "80g Rolled Oats",
-            "1 Scoop Whey Protein",
-            "3 Egg Whites",
-            "1 Sliced Banana",
-            "Handful of Berries"
-          ],
-          "instructions": [
-            "Cook rolled oats in water or milk until creamy and thick.",
-            "Remove from heat and vigorously stir in protein powder.",
-            "Scramble egg whites separately and top oats with fresh banana and berries."
-          ],
-          "youtubeSearch": "healthy high protein oatmeal egg white breakfast",
-          "calories": 649,
-          "proteinG": 38
-        },
-        {
-          "mealSlot": "LUNCH",
-          "recipeTitle": "Mediterranean Grilled Chicken & Quinoa Bowl",
-          "ingredients": [
-            "180g Chicken Breast",
-            "150g Cooked Quinoa",
-            "Diced Cucumbers",
-            "Cherry Tomatoes",
-            "1 tbsp Extra Virgin Olive Oil"
-          ],
-          "instructions": [
-            "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
-            "Fluff warm quinoa into a bowl.",
-            "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil."
-          ],
-          "youtubeSearch": "healthy chicken quinoa meal prep bowl",
-          "calories": 908,
-          "proteinG": 53
-        },
-        {
-          "mealSlot": "SNACK",
-          "recipeTitle": "Greek Yogurt Parfait & Raw Almonds",
-          "ingredients": [
-            "200g Non-Fat Greek Yogurt",
-            "25g Raw Almonds",
-            "1 tbsp Pure Honey or Mixed Berries"
-          ],
-          "instructions": [
-            "Spoon rich Greek yogurt into a bowl.",
-            "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy."
-          ],
-          "youtubeSearch": "high protein greek yogurt fitness snack",
-          "calories": 389,
-          "proteinG": 23
-        },
-        {
-          "mealSlot": "DINNER",
-          "recipeTitle": "Lean Beef & Roasted Sweet Potato Power Plate",
-          "ingredients": [
-            "170g Lean Ground Beef (93/7) or Turkey",
-            "200g Roasted Sweet Potato Cubes",
-            "Steamed Broccoli & Green Beans"
-          ],
-          "instructions": [
-            "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
-            "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
-            "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato."
-          ],
-          "youtubeSearch": "lean beef sweet potato muscle building dinner",
-          "calories": 648,
-          "proteinG": 36
-        }
-      ]
-    },
-    "aiMeals": [
-      {
-        "mealSlot": "BREAKFAST",
-        "recipeTitle": "High-Protein Power Oats & Egg Whites",
-        "ingredients": [
-          "80g Rolled Oats",
-          "1 Scoop Whey Protein",
-          "3 Egg Whites",
-          "1 Sliced Banana",
-          "Handful of Berries"
-        ],
-        "instructions": [
-          "Cook rolled oats in water or milk until creamy and thick.",
-          "Remove from heat and vigorously stir in protein powder.",
-          "Scramble egg whites separately and top oats with fresh banana and berries."
-        ],
-        "youtubeSearch": "healthy high protein oatmeal egg white breakfast",
-        "calories": 637,
-        "proteinG": 38
-      },
-      {
-        "mealSlot": "LUNCH",
-        "recipeTitle": "Mediterranean Grilled Chicken & Quinoa Bowl",
-        "ingredients": [
-          "180g Chicken Breast",
-          "150g Cooked Quinoa",
-          "Diced Cucumbers",
-          "Cherry Tomatoes",
-          "1 tbsp Extra Virgin Olive Oil"
-        ],
-        "instructions": [
-          "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
-          "Fluff warm quinoa into a bowl.",
-          "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil."
-        ],
-        "youtubeSearch": "healthy chicken quinoa meal prep bowl",
-        "calories": 891,
-        "proteinG": 53
-      },
-      {
-        "mealSlot": "SNACK",
-        "recipeTitle": "Greek Yogurt Parfait & Raw Almonds",
-        "ingredients": [
-          "200g Non-Fat Greek Yogurt",
-          "25g Raw Almonds",
-          "1 tbsp Pure Honey or Mixed Berries"
-        ],
-        "instructions": [
-          "Spoon rich Greek yogurt into a bowl.",
-          "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy."
-        ],
-        "youtubeSearch": "high protein greek yogurt fitness snack",
-        "calories": 382,
-        "proteinG": 23
-      },
-      {
-        "mealSlot": "DINNER",
-        "recipeTitle": "Lean Beef & Roasted Sweet Potato Power Plate",
-        "ingredients": [
-          "170g Lean Ground Beef (93/7) or Turkey",
-          "200g Roasted Sweet Potato Cubes",
-          "Steamed Broccoli & Green Beans"
-        ],
-        "instructions": [
-          "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
-          "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
-          "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato."
-        ],
-        "youtubeSearch": "lean beef sweet potato muscle building dinner",
-        "calories": 636,
-        "proteinG": 36
-      }
-    ],
-    "hasCompletedOnboarding": true
-  },
-  "_users": {
-    "user_1789633601090_vcqqcc": {
-      "id": "user_1789633601090_vcqqcc",
-      "email": "numanfaisal980@gmail.com",
-      "passwordHash": "$2a$10$kviakCdZ9JOD.yFIN8rPauxVXWMcE3E0.QXwmgub1MZEuwVu0Bsyu",
-      "createdAt": "2026-09-17T08:26:41.091Z"
-    },
-    "test_coach_pipeline_user": {
-      "id": "test_coach_pipeline_user",
-      "email": "coach_test@fitness.local",
-      "passwordHash": "hash",
-      "createdAt": "2026-09-18T10:59:30.394Z"
-    }
-  },
-  "user_1789633601090_vcqqcc": {
-    "profile": {
-      "name": "Numan Faisal",
-      "age": 23,
-      "sex": "MALE",
-      "heightCm": 186,
-      "weightKg": 95,
-      "targetWeightKg": 82,
-      "targetPhotoUri": "file:///data/user/0/host.exp.exponent/cache/ExperienceData/%2540anonymous%252Ffitness-transformation-app-8bbb3b59-df49-4d2d-85b8-ff4e5dfc2a5b/ImagePicker/34b6158a-29a5-42b5-bec3-ed02523d92f9.png",
-      "targetPhysique": {
-        "physiqueAesthetic": "Chiseled Aesthetic & Low Body Fat",
-        "targetBodyFatPct": 11.5,
-        "targetWeightKg": 82,
-        "estimatedWeeks": 24,
-        "standoutMuscles": [
-          "Upper Chest",
-          "Lateral Delts (V-Taper)",
-          "Lats & Upper Back",
-          "Defined Rectus Abdominis",
-          "Quadricep Sweep"
-        ],
-        "trainingFocusRecommendations": [
-          "Prioritize incline dumbbell presses and lateral raises for broad upper shelf",
-          "Progressive overload on lat pulldowns and rows for dramatic V-taper taper",
-          "Direct abdominal training 2-3x/week to maintain core chiseled definition"
-        ],
-        "nutritionStrategy": "Moderate caloric deficit (-400 kcal) with 2.0g/kg protein to burn adipose fat while locking in lean muscle.",
-        "description": "Analyzed reference physique: target body fat ~11.5%, emphasizing balanced muscle symmetry across Upper Chest, Lateral Delts (V-Taper), Lats & Upper Back. Calibrated for realistic timeline of 24 weeks.",
-        "confidenceScore": 0.85
-      }
-    },
-    "fitnessProfile": {
-      "experienceLevel": "INTERMEDIATE",
-      "trainingEnvironment": "GYM",
-      "equipmentAvailable": [],
-      "workoutDaysPerWeek": 6,
-      "sessionDurationMin": 90,
-      "injuries": [],
-      "physicalLimitations": [],
-      "dietaryPreference": "Omnivore ",
-      "allergies": [
-        "No"
-      ],
-      "dislikedFoods": [],
-      "cuisinePreferences": [],
-      "budgetTier": "LOW"
-    },
-    "goal": {
-      "type": "RECOMPOSITION",
-      "isPrimary": true
-    },
-    "nutritionPlan": {
-      "bmr": 2003,
-      "tdee": 3454,
-      "calorieTarget": {
-        "value": 3104,
-        "provenance": "CALCULATED"
-      },
-      "proteinTargetG": {
-        "value": 190,
-        "provenance": "CALCULATED"
-      },
-      "carbTargetG": {
-        "value": 349,
-        "provenance": "CALCULATED"
-      },
-      "fatTargetG": {
-        "value": 86,
-        "provenance": "CALCULATED"
-      },
-      "budgetTier": "LOW",
-      "recommendedMealSlots": [
-        "Breakfast",
-        "Lunch",
-        "Pre-Workout Snack",
-        "Dinner"
-      ]
-    },
-    "workoutPlan": {
-      "splitType": "PUSH_PULL_LEGS",
-      "days": [
-        {
-          "dayOfWeek": 1,
-          "focus": "Push: Chest, Front/Side Delts, Triceps",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 1,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Incline Dumbbell Bench Press",
-              "exerciseSlug": "dumbbell-incline-press",
-              "mediaUri": "exercises/dumbbell-incline-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 2,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Seated Overhead Dumbbell Shoulder Press",
-              "exerciseSlug": "dumbbell-shoulder-press",
-              "mediaUri": "exercises/dumbbell-shoulder-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 3,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Arnold Dumbbell Press",
-              "exerciseSlug": "arnold-press",
-              "mediaUri": "exercises/arnold-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 4,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Flat Dumbbell Bench Press",
-              "exerciseSlug": "dumbbell-bench-press",
-              "mediaUri": "exercises/dumbbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 5,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Standard Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 6,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 2,
-          "focus": "Pull: Lat Width, Upper Back, Biceps",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 1,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Seated Cable Row",
-              "exerciseSlug": "seated-cable-row",
-              "mediaUri": "exercises/seated-cable-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 2,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Single-Arm Dumbbell Row",
-              "exerciseSlug": "single-arm-dumbbell-row",
-              "mediaUri": "exercises/single-arm-dumbbell-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 3,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Chest-Supported Machine Row",
-              "exerciseSlug": "chest-supported-row",
-              "mediaUri": "exercises/chest-supported-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 4,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Inverted Bodyweight Row",
-              "exerciseSlug": "inverted-row",
-              "mediaUri": "exercises/inverted-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 5,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "T-Bar Row",
-              "exerciseSlug": "t-bar-row",
-              "mediaUri": "exercises/t-bar-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 6,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 3,
-          "focus": "Legs & Core Athleticism",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 1,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "45-Degree Leg Press",
-              "exerciseSlug": "leg-press",
-              "mediaUri": "exercises/leg-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 2,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Goblet Squat",
-              "exerciseSlug": "goblet-squat",
-              "mediaUri": "exercises/goblet-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 3,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Bulgarian Split Squat",
-              "exerciseSlug": "bulgarian-split-squat",
-              "mediaUri": "exercises/bulgarian-split-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 4,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Dumbbell Walking Lunges",
-              "exerciseSlug": "walking-lunges",
-              "mediaUri": "exercises/walking-lunges.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 5,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Standard Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 6,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 4,
-          "focus": "Push: Upper Chest & Shoulder Sculpt",
-          "exercises": [
-            {
-              "exerciseName": "Incline Dumbbell Bench Press",
-              "exerciseSlug": "dumbbell-incline-press",
-              "mediaUri": "exercises/dumbbell-incline-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 1,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 2,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Arnold Dumbbell Press",
-              "exerciseSlug": "arnold-press",
-              "mediaUri": "exercises/arnold-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 3,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Flat Dumbbell Bench Press",
-              "exerciseSlug": "dumbbell-bench-press",
-              "mediaUri": "exercises/dumbbell-bench-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 4,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Standard Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 5,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Feet-Elevated Incline Push-Up",
-              "exerciseSlug": "incline-push-up",
-              "mediaUri": "exercises/incline-push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 6,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 5,
-          "focus": "Pull: V-Taper Thickness & Arm Peak",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 1,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Seated Cable Row",
-              "exerciseSlug": "seated-cable-row",
-              "mediaUri": "exercises/seated-cable-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 2,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Chest-Supported Machine Row",
-              "exerciseSlug": "chest-supported-row",
-              "mediaUri": "exercises/chest-supported-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 3,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Single-Arm Dumbbell Row",
-              "exerciseSlug": "single-arm-dumbbell-row",
-              "mediaUri": "exercises/single-arm-dumbbell-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 4,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Inverted Bodyweight Row",
-              "exerciseSlug": "inverted-row",
-              "mediaUri": "exercises/inverted-row.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 5,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Standard Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 6,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 6,
-          "focus": "Legs: Hamstring & Glute Power + Core",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 1,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Goblet Squat",
-              "exerciseSlug": "goblet-squat",
-              "mediaUri": "exercises/goblet-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 2,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "45-Degree Leg Press",
-              "exerciseSlug": "leg-press",
-              "mediaUri": "exercises/leg-press.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 3,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Bulgarian Split Squat",
-              "exerciseSlug": "bulgarian-split-squat",
-              "mediaUri": "exercises/bulgarian-split-squat.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 4,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Dumbbell Walking Lunges",
-              "exerciseSlug": "walking-lunges",
-              "mediaUri": "exercises/walking-lunges.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 5,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            },
-            {
-              "exerciseName": "Standard Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7.5,
-              "orderIndex": 6,
-              "progressionNote": "[ADAPTATION] Week 1: Target 4 sets @ RPE 7.5."
-            }
-          ]
-        }
-      ],
-      "generatedBy": "Sports Science Hypertrophy Engine v2.5",
-      "safetyGateApplied": false,
-      "periodization": {
-        "cycleId": "cycle_week_1",
-        "currentWeek": 1,
-        "totalWeeks": 12,
-        "phase": "ADAPTATION",
-        "volumeModifier": 0.9,
-        "intensityRpeTarget": 7.5,
-        "description": "Mesocycle Introduction: Establish baseline loads, motor patterns, and clean tempo."
-      }
-    },
-    "waterLogs": [
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-18T10:12:53.415Z"
-      }
-    ],
-    "aiPlan": {
-      "coachNarrative": "This plan is tailored for Numan Faisal's recomposition goal, providing enough protein and calories to support muscle growth while staying within a low‑budget grocery list. The push‑focused bodyweight workout substitutes classic barbell and dumbbell moves with progressive push‑up variations, ensuring safe overload without equipment. The meals use ultra‑cheap staples and hit the target macros within the allowed ranges.",
-      "workoutFocus": "Push: Chest, Front/Side Delts, Triceps (Bodyweight Substitutions)",
-      "workoutCues": [
-        "Prioritize strict form on each push‑up variation; keep core tight and elbows at ~45° to protect shoulders.",
-        "Progress overload by adding reps, slowing tempo (e.g., 3‑0‑1), or wearing a backpack with weight as you adapt.",
-        "Rest 60‑90 seconds between sets; maintain a controlled tempo to maximize muscle tension."
-      ],
-      "meals": [
-        {
-          "mealSlot": "BREAKFAST",
-          "recipeTitle": "Hearty Oatmeal with Eggs, Banana, Peanut Butter & Cottage Cheese",
-          "ingredients": [
-            "Rolled oats – 1 cup (81 g)",
-            "Whole egg – 1 large",
-            "Egg whites – 2 large",
-            "Banana – 1 medium",
-            "Peanut butter – 2 Tbsp",
-            "Low‑fat cottage cheese – ½ cup (≈110 g)"
-          ],
-          "instructions": [
-            "Cook oats in water until soft.",
-            "Scramble the whole egg and egg whites in a non‑stick pan.",
-            "Stir the cooked eggs into the oatmeal, slice the banana on top, and drizzle peanut butter.",
-            "Serve cottage cheese on the side."
-          ],
-          "youtubeSearch": "oatmeal with egg banana peanut butter recipe",
-          "calories": 814,
-          "proteinG": 47.5,
-          "nutritionConfidence": 0.8
-        },
-        {
-          "mealSlot": "LUNCH",
-          "recipeTitle": "Chicken‑Lentil Rice Bowl with Veggies & Peanut Butter",
-          "ingredients": [
-            "Skinless chicken thigh – 150 g (cooked)",
-            "Lentils – 1 cup cooked",
-            "White rice – 1½ cups cooked",
-            "Frozen mixed vegetables – 1 cup",
-            "Peanut butter – 1 Tbsp"
-          ],
-          "instructions": [
-            "Season and grill or bake the chicken thigh; slice into strips.",
-            "Cook lentils until tender.",
-            "Steam mixed vegetables.",
-            "Combine rice, lentils, chicken, and veggies in a bowl; stir in peanut butter for extra calories."
-          ],
-          "youtubeSearch": "chicken lentil rice bowl recipe",
-          "calories": 960,
-          "proteinG": 61.45,
-          "nutritionConfidence": 0.8
-        },
-        {
-          "mealSlot": "SNACK",
-          "recipeTitle": "Peanut Butter Banana Rice Snack",
-          "ingredients": [
-            "Peanut butter – 3 Tbsp",
-            "Banana – 1 medium",
-            "White rice – 1 cup cooked",
-            "Egg white – 1 large"
-          ],
-          "instructions": [
-            "Mix the cooked rice with peanut butter until evenly coated.",
-            "Slice the banana and serve alongside.",
-            "Quickly whisk the egg white and add to the rice mixture for a protein boost (optional)."
-          ],
-          "youtubeSearch": "peanut butter banana rice snack",
-          "calories": 609,
-          "proteinG": 21.2,
-          "nutritionConfidence": 0.85
-        },
-        {
-          "mealSlot": "DINNER",
-          "recipeTitle": "Tuna Rice Power Bowl with Beans, Veggies & Potato",
-          "ingredients": [
-            "Canned tuna in water – 150 g",
-            "White rice – 1½ cups cooked",
-            "Frozen mixed vegetables – 1 cup",
-            "Kidney beans – ½ cup cooked",
-            "Potato – 1 medium (≈150 g, boiled)"
-          ],
-          "instructions": [
-            "Drain tuna and flake it.",
-            "Steam mixed vegetables.",
-            "Combine rice, tuna, beans, vegetables, and diced boiled potato in a bowl; season with salt/pepper if desired."
-          ],
-          "youtubeSearch": "tuna rice bean veggie bowl recipe",
-          "calories": 804,
-          "proteinG": 58.95,
-          "nutritionConfidence": 0.8
-        }
-      ],
-      "generatedBy": "GROQ / GEMINI AI",
-      "source": "llm-groq"
-    },
-    "aiMeals": [
-      {
-        "mealSlot": "BREAKFAST",
-        "recipeTitle": "Hearty Oatmeal with Eggs, Banana, Peanut Butter & Cottage Cheese",
-        "ingredients": [
-          "Rolled oats – 1 cup (81 g)",
-          "Whole egg – 1 large",
-          "Egg whites – 2 large",
-          "Banana – 1 medium",
-          "Peanut butter – 2 Tbsp",
-          "Low‑fat cottage cheese – ½ cup (≈110 g)"
-        ],
-        "instructions": [
-          "Cook oats in water until soft.",
-          "Scramble the whole egg and egg whites in a non‑stick pan.",
-          "Stir the cooked eggs into the oatmeal, slice the banana on top, and drizzle peanut butter.",
-          "Serve cottage cheese on the side."
-        ],
-        "youtubeSearch": "oatmeal with egg banana peanut butter recipe",
-        "calories": 793,
-        "proteinG": 47.5,
-        "nutritionConfidence": 0.8
-      },
-      {
-        "mealSlot": "LUNCH",
-        "recipeTitle": "Chicken‑Lentil Rice Bowl with Veggies & Peanut Butter",
-        "ingredients": [
-          "Skinless chicken thigh – 150 g (cooked)",
-          "Lentils – 1 cup cooked",
-          "White rice – 1½ cups cooked",
-          "Frozen mixed vegetables – 1 cup",
-          "Peanut butter – 1 Tbsp"
-        ],
-        "instructions": [
-          "Season and grill or bake the chicken thigh; slice into strips.",
-          "Cook lentils until tender.",
-          "Steam mixed vegetables.",
-          "Combine rice, lentils, chicken, and veggies in a bowl; stir in peanut butter for extra calories."
-        ],
-        "youtubeSearch": "chicken lentil rice bowl recipe",
-        "calories": 935,
-        "proteinG": 61.45,
-        "nutritionConfidence": 0.8
-      },
-      {
-        "mealSlot": "SNACK",
-        "recipeTitle": "Peanut Butter Banana Rice Snack",
-        "ingredients": [
-          "Peanut butter – 3 Tbsp",
-          "Banana – 1 medium",
-          "White rice – 1 cup cooked",
-          "Egg white – 1 large"
-        ],
-        "instructions": [
-          "Mix the cooked rice with peanut butter until evenly coated.",
-          "Slice the banana and serve alongside.",
-          "Quickly whisk the egg white and add to the rice mixture for a protein boost (optional)."
-        ],
-        "youtubeSearch": "peanut butter banana rice snack",
-        "calories": 593,
-        "proteinG": 21.2,
-        "nutritionConfidence": 0.85
-      },
-      {
-        "mealSlot": "DINNER",
-        "recipeTitle": "Tuna Rice Power Bowl with Beans, Veggies & Potato",
-        "ingredients": [
-          "Canned tuna in water – 150 g",
-          "White rice – 1½ cups cooked",
-          "Frozen mixed vegetables – 1 cup",
-          "Kidney beans – ½ cup cooked",
-          "Potato – 1 medium (≈150 g, boiled)"
-        ],
-        "instructions": [
-          "Drain tuna and flake it.",
-          "Steam mixed vegetables.",
-          "Combine rice, tuna, beans, vegetables, and diced boiled potato in a bowl; season with salt/pepper if desired."
-        ],
-        "youtubeSearch": "tuna rice bean veggie bowl recipe",
-        "calories": 783,
-        "proteinG": 58.95,
-        "nutritionConfidence": 0.8
-      }
-    ],
-    "hasCompletedOnboarding": true
-  },
-  "167d873d-8d68-4494-a3d8-27113750b625": {
-    "profile": {
-      "name": "Athlete",
-      "age": 25,
-      "sex": "MALE",
-      "heightCm": 178,
-      "weightKg": 75
-    },
-    "fitnessProfile": {
-      "experienceLevel": "BEGINNER",
-      "trainingEnvironment": "GYM",
-      "equipmentAvailable": [
-        "barbell",
-        "dumbbell",
-        "cables",
-        "bench",
-        "pullup_bar"
-      ],
-      "workoutDaysPerWeek": 4,
-      "sessionDurationMin": 45,
-      "injuries": [],
-      "physicalLimitations": [],
-      "dietaryPreference": "High Protein / Balanced",
-      "allergies": [],
-      "dislikedFoods": [],
-      "cuisinePreferences": [
-        "mediterranean",
-        "healthy"
-      ],
-      "budgetTier": "MEDIUM",
-      "targetDate": "2026-12-16"
-    },
-    "goal": {
-      "type": "MUSCLE_GAIN",
-      "isPrimary": true
-    },
-    "nutritionPlan": {
-      "bmr": 1743,
-      "tdee": 2701,
-      "calorieTarget": {
-        "value": 3001,
-        "provenance": "CALCULATED"
-      },
-      "proteinTargetG": {
-        "value": 150,
-        "provenance": "CALCULATED"
-      },
-      "carbTargetG": {
-        "value": 447,
-        "provenance": "CALCULATED"
-      },
-      "fatTargetG": {
-        "value": 68,
-        "provenance": "CALCULATED"
-      },
-      "budgetTier": "MEDIUM",
-      "recommendedMealSlots": [
-        "Breakfast",
-        "Lunch",
-        "Pre-Workout Snack",
-        "Dinner"
-      ]
-    },
-    "workoutPlan": {
-      "splitType": "UPPER_LOWER",
-      "days": [
-        {
-          "dayOfWeek": 1,
-          "focus": "Upper Body Power",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Romanian Deadlift",
-              "exerciseSlug": "romanian-deadlift",
-              "mediaUri": "exercises/romanian-deadlift.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Overhead Dumbbell Shoulder Press",
-              "exerciseSlug": "dumbbell-shoulder-press",
-              "mediaUri": "exercises/dumbbell-shoulder-press.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 3
-            },
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 4
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 2,
-          "focus": "Lower Body & Core",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 3
-            },
-            {
-              "exerciseName": "Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 4
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 4,
-          "focus": "Upper Body Hypertrophy",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Lat Pulldown / Pull-Up",
-              "exerciseSlug": "lat-pulldown",
-              "mediaUri": "exercises/lat-pulldown.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Dumbbell Lateral Raise",
-              "exerciseSlug": "dumbbell-lateral-raise",
-              "mediaUri": "exercises/dumbbell-lateral-raise.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 3
-            },
-            {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 4
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 5,
-          "focus": "Lower Body Hypertrophy",
-          "exercises": [
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 1
-            },
-            {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 2
-            },
-            {
-              "exerciseName": "Push-Up",
-              "exerciseSlug": "push-up",
-              "mediaUri": "exercises/push-up.gif",
-              "sets": 3,
-              "repRangeLow": 8,
-              "repRangeHigh": 12,
-              "restSeconds": 75,
-              "rpeTarget": 7,
-              "orderIndex": 3
-            }
-          ]
-        }
-      ],
-      "generatedBy": "Deterministic Training Engine v1.0"
-    },
-    "waterLogs": []
-  },
   "user_test_periodization_w1": {
     "profile": {
       "name": "Athlete",
@@ -1466,7 +29,7 @@
         "healthy"
       ],
       "budgetTier": "MEDIUM",
-      "targetDate": "2026-12-17"
+      "targetDate": "2026-12-18"
     },
     "goal": {
       "type": "MUSCLE_GAIN",
@@ -1794,7 +357,8 @@
       "generatedBy": "Sports Science Hypertrophy Engine v2.5",
       "safetyGateApplied": false
     },
-    "waterLogs": []
+    "waterLogs": [],
+    "hasCompletedOnboarding": false
   },
   "user_test_tdee_stall": {
     "profile": {
@@ -1828,7 +392,7 @@
       "bmr": 1743,
       "tdee": 2701,
       "calorieTarget": {
-        "value": 2551,
+        "value": 2751,
         "provenance": "CALCULATED"
       },
       "proteinTargetG": {
@@ -2179,7 +743,7 @@
         "healthy"
       ],
       "budgetTier": "MEDIUM",
-      "targetDate": "2026-12-17"
+      "targetDate": "2026-12-18"
     },
     "goal": {
       "type": "MUSCLE_GAIN",
@@ -2189,7 +753,7 @@
       "bmr": 1743,
       "tdee": 2701,
       "calorieTarget": {
-        "value": 5000,
+        "value": 3301,
         "provenance": "CALCULATED"
       },
       "proteinTargetG": {
@@ -2510,6 +1074,14 @@
     "waterLogs": [],
     "hasCompletedOnboarding": false
   },
+  "_users": {
+    "test_coach_pipeline_user": {
+      "id": "test_coach_pipeline_user",
+      "email": "coach_test@fitness.local",
+      "passwordHash": "hash",
+      "createdAt": "2026-09-19T11:11:56.725Z"
+    }
+  },
   "test_coach_pipeline_user": {
     "profile": {
       "name": "Test Athlete",
@@ -2561,11 +1133,11 @@
       "tdee": 2904
     },
     "workoutPlan": {
-      "splitType": "PUSH_PULL_LEGS",
+      "splitType": "UPPER_LOWER",
       "days": [
         {
           "dayOfWeek": 1,
-          "focus": "Push (Chest, Shoulders, Triceps)",
+          "focus": "Upper Body Power & V-Taper",
           "exercises": [
             {
               "exerciseName": "Barbell Bench Press",
@@ -2579,9 +1151,9 @@
               "orderIndex": 1
             },
             {
-              "exerciseName": "Overhead Dumbbell Shoulder Press",
-              "exerciseSlug": "dumbbell-shoulder-press",
-              "mediaUri": "exercises/dumbbell-shoulder-press.gif",
+              "exerciseName": "Barbell Bent-Over Row",
+              "exerciseSlug": "barbell-bent-over-row",
+              "mediaUri": "exercises/barbell-bent-over-row.gif",
               "sets": 2,
               "repRangeLow": 8,
               "repRangeHigh": 12,
@@ -2590,317 +1162,281 @@
               "orderIndex": 2
             },
             {
-              "exerciseName": "Barbell Bench Press",
-              "exerciseSlug": "barbell-bench-press",
-              "mediaUri": "exercises/barbell-bench-press.gif",
+              "exerciseName": "Incline Dumbbell Bench Press",
+              "exerciseSlug": "dumbbell-incline-press",
+              "mediaUri": "exercises/dumbbell-incline-press.gif",
               "sets": 2,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
               "rpeTarget": 7,
               "orderIndex": 3
+            },
+            {
+              "exerciseName": "Arnold Dumbbell Press",
+              "exerciseSlug": "arnold-press",
+              "mediaUri": "exercises/arnold-press.gif",
+              "sets": 2,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 4
+            },
+            {
+              "exerciseName": "Flat Dumbbell Bench Press",
+              "exerciseSlug": "dumbbell-bench-press",
+              "mediaUri": "exercises/dumbbell-bench-press.gif",
+              "sets": 2,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 5
+            },
+            {
+              "exerciseName": "Seated Cable Row",
+              "exerciseSlug": "seated-cable-row",
+              "mediaUri": "exercises/seated-cable-row.gif",
+              "sets": 2,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 6
             }
           ]
         },
         {
           "dayOfWeek": 2,
-          "focus": "Pull (Back, Biceps)",
+          "focus": "Lower Body Density & Core",
           "exercises": [
             {
-              "exerciseName": "Romanian Deadlift",
-              "exerciseSlug": "romanian-deadlift",
-              "mediaUri": "exercises/romanian-deadlift.gif",
-              "sets": 4,
+              "exerciseName": "Barbell Back Squat",
+              "exerciseSlug": "barbell-back-squat",
+              "mediaUri": "exercises/barbell-back-squat.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 1
             },
             {
-              "exerciseName": "Lat Pulldown / Pull-Up",
-              "exerciseSlug": "lat-pulldown",
-              "mediaUri": "exercises/lat-pulldown.gif",
-              "sets": 4,
+              "exerciseName": "45-Degree Leg Press",
+              "exerciseSlug": "leg-press",
+              "mediaUri": "exercises/leg-press.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 2
             },
             {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
+              "exerciseName": "Goblet Squat",
+              "exerciseSlug": "goblet-squat",
+              "mediaUri": "exercises/goblet-squat.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 3
-            }
-          ]
-        },
-        {
-          "dayOfWeek": 3,
-          "focus": "Legs & Core",
-          "exercises": [
+            },
             {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 4,
+              "exerciseName": "Bulgarian Split Squat",
+              "exerciseSlug": "bulgarian-split-squat",
+              "mediaUri": "exercises/bulgarian-split-squat.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 1
+              "rpeTarget": 7,
+              "orderIndex": 4
             },
             {
-              "exerciseName": "Barbell Back Squat",
-              "exerciseSlug": "barbell-back-squat",
-              "mediaUri": "exercises/barbell-back-squat.gif",
-              "sets": 4,
+              "exerciseName": "Dumbbell Walking Lunges",
+              "exerciseSlug": "walking-lunges",
+              "mediaUri": "exercises/walking-lunges.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 2
+              "rpeTarget": 7,
+              "orderIndex": 5
             },
             {
-              "exerciseName": "Push-Up",
+              "exerciseName": "Standard Push-Up",
               "exerciseSlug": "push-up",
               "mediaUri": "exercises/push-up.gif",
-              "sets": 4,
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
+              "rpeTarget": 7,
+              "orderIndex": 6
             }
           ]
         },
         {
           "dayOfWeek": 4,
-          "focus": "Push (Hypertrophy)",
+          "focus": "Upper Body Hypertrophy & Arms",
           "exercises": [
             {
-              "exerciseName": "Dumbbell Incline Bench Press",
+              "exerciseName": "Incline Dumbbell Bench Press",
               "exerciseSlug": "dumbbell-incline-press",
               "mediaUri": "exercises/dumbbell-incline-press.gif",
-              "sets": 4,
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 1
             },
             {
-              "exerciseName": "Dumbbell Lateral Raise",
-              "exerciseSlug": "dumbbell-lateral-raise",
-              "mediaUri": "exercises/dumbbell-lateral-raise.gif",
-              "sets": 4,
+              "exerciseName": "Barbell Bent-Over Row",
+              "exerciseSlug": "barbell-bent-over-row",
+              "mediaUri": "exercises/barbell-bent-over-row.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 2
+            },
+            {
+              "exerciseName": "Arnold Dumbbell Press",
+              "exerciseSlug": "arnold-press",
+              "mediaUri": "exercises/arnold-press.gif",
+              "sets": 3,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 3
+            },
+            {
+              "exerciseName": "Chest-Supported Machine Row",
+              "exerciseSlug": "chest-supported-row",
+              "mediaUri": "exercises/chest-supported-row.gif",
+              "sets": 3,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 4
+            },
+            {
+              "exerciseName": "Seated Cable Row",
+              "exerciseSlug": "seated-cable-row",
+              "mediaUri": "exercises/seated-cable-row.gif",
+              "sets": 3,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 5
             },
             {
               "exerciseName": "Barbell Bench Press",
               "exerciseSlug": "barbell-bench-press",
               "mediaUri": "exercises/barbell-bench-press.gif",
-              "sets": 4,
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
-              "orderIndex": 3
+              "rpeTarget": 7,
+              "orderIndex": 6
             }
           ]
         },
         {
           "dayOfWeek": 5,
-          "focus": "Pull (Hypertrophy)",
+          "focus": "Lower Body Hypertrophy & Abs",
           "exercises": [
             {
-              "exerciseName": "Lat Pulldown / Pull-Up",
-              "exerciseSlug": "lat-pulldown",
-              "mediaUri": "exercises/lat-pulldown.gif",
-              "sets": 4,
+              "exerciseName": "Barbell Back Squat",
+              "exerciseSlug": "barbell-back-squat",
+              "mediaUri": "exercises/barbell-back-squat.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 1
             },
             {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
+              "exerciseName": "45-Degree Leg Press",
+              "exerciseSlug": "leg-press",
+              "mediaUri": "exercises/leg-press.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 2
             },
             {
-              "exerciseName": "Barbell Bent-Over Row",
-              "exerciseSlug": "barbell-bent-over-row",
-              "mediaUri": "exercises/barbell-bent-over-row.gif",
-              "sets": 4,
+              "exerciseName": "Goblet Squat",
+              "exerciseSlug": "goblet-squat",
+              "mediaUri": "exercises/goblet-squat.gif",
+              "sets": 3,
               "repRangeLow": 8,
               "repRangeHigh": 12,
               "restSeconds": 75,
-              "rpeTarget": 8.5,
+              "rpeTarget": 7,
               "orderIndex": 3
+            },
+            {
+              "exerciseName": "Dumbbell Walking Lunges",
+              "exerciseSlug": "walking-lunges",
+              "mediaUri": "exercises/walking-lunges.gif",
+              "sets": 3,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 4
+            },
+            {
+              "exerciseName": "Standard Push-Up",
+              "exerciseSlug": "push-up",
+              "mediaUri": "exercises/push-up.gif",
+              "sets": 3,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 5
+            },
+            {
+              "exerciseName": "Feet-Elevated Incline Push-Up",
+              "exerciseSlug": "incline-push-up",
+              "mediaUri": "exercises/incline-push-up.gif",
+              "sets": 3,
+              "repRangeLow": 8,
+              "repRangeHigh": 12,
+              "restSeconds": 75,
+              "rpeTarget": 7,
+              "orderIndex": 6
             }
           ]
         }
       ],
-      "generatedBy": "Deterministic Training Engine v1.0"
+      "generatedBy": "Sports Science Hypertrophy Engine v2.5",
+      "safetyGateApplied": false
     },
     "waterLogs": [
       {
         "amountMl": 500,
-        "loggedAt": "2026-09-18T10:59:30.398Z"
+        "loggedAt": "2026-09-19T11:11:56.730Z"
       },
       {
         "amountMl": 500,
-        "loggedAt": "2026-09-18T11:04:05.034Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-18T11:04:46.178Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-18T11:06:15.558Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-18T11:08:45.176Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T09:55:29.028Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T09:56:13.175Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:03:36.780Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:03:58.935Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:10:43.473Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:18:42.084Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:22:34.920Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:26:18.496Z"
-      },
-      {
-        "amountMl": 500,
-        "loggedAt": "2026-09-19T10:33:42.463Z"
+        "loggedAt": "2026-09-19T11:12:49.635Z"
       }
     ],
-    "aiPlan": {
-      "coachNarrative": "This program is calibrated for your recomposition objective, targeting 2594 kcal and 150g protein. Focus on technical execution on today's Push (Chest, Shoulders, Triceps) session and prioritize progressive overload with adequate recovery.",
-      "workoutFocus": "Push (Chest, Shoulders, Triceps)",
-      "workoutCues": [
-        "Control the eccentric (lowering) phase for 2-3 seconds to maximize mechanical tension.",
-        "Take full rest intervals between compound sets to maintain force output across all prescribed sets.",
-        "Stop 1-2 reps shy of failure on compound lifts to maintain clean form and joint longevity."
-      ],
-      "meals": [
-        {
-          "mealSlot": "BREAKFAST",
-          "recipeTitle": "High-Protein Power Oats & Egg Whites",
-          "ingredients": [
-            "80g Rolled Oats",
-            "1 Scoop Whey Protein",
-            "3 Egg Whites",
-            "1 Sliced Banana",
-            "Handful of Berries"
-          ],
-          "instructions": [
-            "Cook rolled oats in water or milk until creamy and thick.",
-            "Remove from heat and vigorously stir in protein powder.",
-            "Scramble egg whites separately and top oats with fresh banana and berries."
-          ],
-          "youtubeSearch": "healthy high protein oatmeal egg white breakfast",
-          "calories": 649,
-          "proteinG": 38
-        },
-        {
-          "mealSlot": "LUNCH",
-          "recipeTitle": "Mediterranean Grilled Chicken & Quinoa Bowl",
-          "ingredients": [
-            "180g Chicken Breast",
-            "150g Cooked Quinoa",
-            "Diced Cucumbers",
-            "Cherry Tomatoes",
-            "1 tbsp Extra Virgin Olive Oil"
-          ],
-          "instructions": [
-            "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
-            "Fluff warm quinoa into a bowl.",
-            "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil."
-          ],
-          "youtubeSearch": "healthy chicken quinoa meal prep bowl",
-          "calories": 908,
-          "proteinG": 53
-        },
-        {
-          "mealSlot": "SNACK",
-          "recipeTitle": "Greek Yogurt Parfait & Raw Almonds",
-          "ingredients": [
-            "200g Non-Fat Greek Yogurt",
-            "25g Raw Almonds",
-            "1 tbsp Pure Honey or Mixed Berries"
-          ],
-          "instructions": [
-            "Spoon rich Greek yogurt into a bowl.",
-            "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy."
-          ],
-          "youtubeSearch": "high protein greek yogurt fitness snack",
-          "calories": 389,
-          "proteinG": 23
-        },
-        {
-          "mealSlot": "DINNER",
-          "recipeTitle": "Lean Beef & Roasted Sweet Potato Power Plate",
-          "ingredients": [
-            "170g Lean Ground Beef (93/7) or Turkey",
-            "200g Roasted Sweet Potato Cubes",
-            "Steamed Broccoli & Green Beans"
-          ],
-          "instructions": [
-            "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
-            "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
-            "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato."
-          ],
-          "youtubeSearch": "lean beef sweet potato muscle building dinner",
-          "calories": 648,
-          "proteinG": 36
-        }
-      ]
-    },
     "aiMeals": [
       {
         "mealSlot": "BREAKFAST",
@@ -2923,6 +1459,6 @@
         "recipeTitle": "Steak Plate"
       }
     ],
-    "hasCompletedOnboarding": true
+    "hasCompletedOnboarding": false
   }
 }
