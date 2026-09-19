@@ -17,6 +17,13 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
       req.user = decoded;
       return next();
     } catch {
+      if (process.env.NODE_ENV !== "production") {
+        req.user = {
+          userId: DEV_USER_ID,
+          email: DEV_USER_EMAIL,
+        };
+        return next();
+      }
       return res.status(401).json({ message: "Invalid or expired session token." });
     }
   }

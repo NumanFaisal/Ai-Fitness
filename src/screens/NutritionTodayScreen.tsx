@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "@/store/ThemeContext";
 import { GlassCard } from "@/components/GlassCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -22,20 +23,22 @@ export function NutritionTodayScreen() {
   const [loading, setLoading] = useState(true);
   const [expandedMeal, setExpandedMeal] = useState<number | null>(0);
 
-  useEffect(() => {
-    async function fetch() {
-      setLoading(true);
-      try {
-        let res = await endpoints.getTodayNutrition();
-        if (!res) {
-          try { await endpoints.generatePlan(); res = await endpoints.getTodayNutrition(); } catch {}
-        }
-        setPlan(res);
-      } catch { setPlan(null); }
-      finally { setLoading(false); }
-    }
-    fetch();
+  const fetchNutrition = useCallback(async () => {
+    try {
+      let res = await endpoints.getTodayNutrition();
+      if (!res) {
+        try { await endpoints.generatePlan(); res = await endpoints.getTodayNutrition(); } catch {}
+      }
+      setPlan(res);
+    } catch { setPlan(null); }
+    finally { setLoading(false); }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNutrition();
+    }, [fetchNutrition])
+  );
 
   function openRecipe(meal: Meal) {
     const url = meal.youtubeUrl || `https://www.youtube.com/results?search_query=how+to+make+${encodeURIComponent(meal.recipeTitle || meal.mealSlot)}+recipe`;
@@ -56,6 +59,15 @@ export function NutritionTodayScreen() {
         <EmptyState title="No nutrition plan yet" description="Meals and recipes will appear here once your plan is generated." />
       ) : (
         <>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginVertical: 2 }}>
+            <View style={{ backgroundColor: colors.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+              <Text style={{ color: "#FFF", fontSize: 10, fontWeight: "700" }}>AI NUTRITION</Text>
+            </View>
+            <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "600" }}>
+              Calibrated to your Image Analysis & Macro Target
+            </Text>
+          </View>
+
           {/* Macro Targets */}
           <View style={styles.macroRow}>
             <GlassCard strong style={styles.macroCard}>

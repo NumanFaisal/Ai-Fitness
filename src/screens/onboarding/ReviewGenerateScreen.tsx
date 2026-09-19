@@ -23,6 +23,8 @@ export function ReviewGenerateScreen({ navigation }: Props) {
     targetWeightKg,
     targetPhotoUri,
     targetPhysiqueAnalysis,
+    bodyPhotos,
+    userPhysiqueAnalysis,
   } = useOnboarding();
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,6 +38,8 @@ export function ReviewGenerateScreen({ navigation }: Props) {
         targetWeightKg,
         targetPhotoUri,
         targetPhysique: targetPhysiqueAnalysis,
+        bodyPhotos,
+        userPhysiqueAnalysis,
       };
       await endpoints.submitProfile(profileToSubmit as any);
       await endpoints.submitFitnessProfile(fitnessProfile as any);

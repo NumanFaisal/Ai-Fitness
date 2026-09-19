@@ -120,7 +120,7 @@ export function TargetPhotoScreen({ navigation }: Props) {
         onPress={pickAndAnalyzePhoto}
       >
         {uri ? (
-          <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri }} style={styles.image as any} resizeMode="cover" />
         ) : (
           <View style={styles.placeholderContainer}>
             <Text style={styles.cameraIcon}>📸</Text>
@@ -267,7 +267,11 @@ const styles = StyleSheet.create({
   changePhotoBtn: { alignSelf: "center", paddingVertical: 4 },
   changePhotoText: { color: colors.primary, fontWeight: "600", fontSize: 13 },
   analyzingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(10, 15, 29, 0.88)",
     alignItems: "center",
     justifyContent: "center",
@@ -321,7 +325,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     color: colors.bone,
-    ...typography.numeral,
+    fontSize: 16,
+    fontWeight: "600",
     borderWidth: 1,
     borderColor: colors.brass,
     textAlign: "center",
@@ -346,7 +351,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  metricVal: { ...typography.numeral, color: colors.bone },
+  metricVal: { fontSize: 16, fontWeight: "600", color: colors.bone },
   metricLabel: { color: colors.ash, fontSize: 11, marginTop: 2 },
   musclesHeading: { color: colors.bone, fontWeight: "600", fontSize: 13, marginTop: 4 },
   chipsContainer: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

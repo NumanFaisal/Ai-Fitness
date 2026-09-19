@@ -17,7 +17,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0F172A"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-image-picker",

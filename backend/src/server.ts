@@ -7,7 +7,7 @@ import { planRouter } from "./routes/plan";
 import { coachRouter } from "./routes/coach";
 import { mediaRouter } from "./routes/media";
 
-dotenv.config();
+dotenv.config(); // Supabase PostgreSQL 17 active
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,8 +25,41 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "healthy", timestamp: new Date().toISOString() });
+import { prisma } from "./db";
+
+app.get("/health", async (_req, res) => {
+  let dbStatus = "unknown";
+  let dbLatencyMs: number | null = null;
+  const start = Date.now();
+
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("DB probe timeout")), 6000)),
+    ]);
+    dbStatus = "connected";
+    dbLatencyMs = Date.now() - start;
+  } catch (err: any) {
+    dbStatus = "disconnected (fallback to persistent store)";
+  }
+
+  const uptimeSeconds = Math.round(process.uptime());
+  const mem = process.memoryUsage();
+
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    database: {
+      status: dbStatus,
+      latencyMs: dbLatencyMs,
+      provider: "postgresql/supabase",
+    },
+    system: {
+      uptimeSeconds,
+      nodeVersion: process.version,
+      memoryRssMb: Math.round(mem.rss / 1024 / 1024),
+    },
+  });
 });
 
 // Mount Routes
@@ -34,6 +67,8 @@ app.use("/auth", authRouter);
 app.use("/", onboardingRouter); // /profile, /profile/fitness, /goals
 app.use("/", planRouter);       // /analysis/start, /workout/today, /nutrition/today, /water, etc.
 app.use("/ai", coachRouter);     // /ai/chat
+app.use("/coach", coachRouter);  // /coach/chat, /coach/action, /coach/history
+app.use("/api/coach", coachRouter); // /api/coach/chat, /api/coach/action
 app.use("/media", mediaRouter);  // /media/upload, /media/status
 
 // Global 404 Handler

@@ -55,6 +55,7 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           position: "absolute",
           backgroundColor: tabBarBg,
@@ -137,7 +138,7 @@ function MainTabs() {
 export function RootNavigator() {
   const [loading, setLoading] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     async function checkStatus() {
@@ -173,7 +174,7 @@ export function RootNavigator() {
     );
   }
 
-  const headerBg = colors.isDark ? "rgba(10,10,12,0.92)" : "rgba(249,249,251,0.92)";
+  const headerBg = isDark ? "rgba(10,10,12,0.92)" : "rgba(249,249,251,0.92)";
 
   return (
     <RootStack.Navigator

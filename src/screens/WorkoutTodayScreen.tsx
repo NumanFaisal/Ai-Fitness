@@ -110,6 +110,12 @@ export function WorkoutTodayScreen() {
       ) : (
         <>
           <GlassCard strong style={styles.bannerCard}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <View style={{ backgroundColor: colors.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                <Text style={{ color: "#FFF", fontSize: 10, fontWeight: "700" }}>AI DYNAMIC PLAN</Text>
+              </View>
+              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "600" }}>Tailored from Body Scan & Goal</Text>
+            </View>
             <Text style={[styles.focusTitle, { color: colors.textPrimary }]}>{activeDayWorkout.focus}</Text>
             <Text style={[styles.focusMeta, { color: colors.textSecondary }]}>
               {activeDayWorkout.exercises.length} exercises · Progressive Overload
@@ -152,6 +158,14 @@ export function WorkoutTodayScreen() {
                     <Text style={[styles.doneBtnText, { color: isDone ? "#FFF" : colors.textSecondary }]}>{isDone ? "✓" : "Done"}</Text>
                   </TouchableOpacity>
                 </View>
+
+                {ex.progressionNote ? (
+                  <View style={{ backgroundColor: colors.accentMuted, padding: 8, borderRadius: 6, marginTop: 4 }}>
+                    <Text style={{ color: colors.accent, fontSize: 12, fontWeight: "500", lineHeight: 17 }}>
+                      💡 Coaching Cue: {ex.progressionNote}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {ex.instructions ? (
                   <Text style={[styles.instructions, { color: colors.textSecondary, borderTopColor: colors.glassBorder }]}>{ex.instructions}</Text>

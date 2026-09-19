@@ -87,22 +87,35 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
     }
   }
 
-  const sheetBg = isDark ? "rgba(18,18,20,0.97)" : "rgba(248,248,252,0.98)";
-  const chipBg = isDark ? "rgba(58,58,60,0.70)" : "rgba(229,229,234,0.80)";
-  const pillBg = isDark ? "rgba(44,44,46,0.80)" : "rgba(242,242,247,0.90)";
+  const sheetBg = isDark ? "rgba(22,22,24,0.97)" : "rgba(255,255,255,0.98)";
+  const chipBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
+  const closeBtnBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  const handleBg = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.18)";
+  const highlightBg = isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.85)";
+  const overlayBg = isDark ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.36)";
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: sheetBg, borderColor: colors.glassBorder }]}>
+      <View style={[styles.overlay, { backgroundColor: overlayBg }]}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={[styles.sheet, { backgroundColor: sheetBg, borderColor: colors.glassBorderStrong }]}>
+          {/* Inner top highlight shimmer — frosted glass catch-light */}
+          <View style={[styles.highlight, { backgroundColor: highlightBg }]} pointerEvents="none" />
+
           {/* Drag Handle */}
-          <View style={[styles.handle, { backgroundColor: colors.textTertiary }]} />
+          <View style={[styles.handle, { backgroundColor: handleBg }]} />
 
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>Gym Schedule</Text>
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.closeBtn, { backgroundColor: pillBg }]}
+              style={[styles.closeBtn, { backgroundColor: closeBtnBg, borderColor: colors.glassBorder }]}
+              accessibilityRole="button"
+              accessibilityLabel="Close schedule modal"
             >
               <Text style={[styles.closeText, { color: colors.textSecondary }]}>✕</Text>
             </TouchableOpacity>
@@ -121,11 +134,15 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
                       key={time}
                       style={[
                         styles.chip,
-                        { backgroundColor: active ? colors.accent : chipBg, borderColor: active ? colors.accent : colors.glassBorder },
+                        {
+                          backgroundColor: active ? colors.accent : chipBg,
+                          borderColor: active ? colors.accent : colors.glassBorder,
+                          ...(active && styles.activeChipGlow),
+                        },
                       ]}
                       onPress={() => setSelectedTime(time)}
                     >
-                      <Text style={[styles.chipText, { color: active ? "#FFFFFF" : colors.textSecondary }]}>{time}</Text>
+                      <Text style={[styles.chipText, { color: active ? "#FFFFFF" : colors.textSecondary, fontWeight: active ? "600" : "500" }]}>{time}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -143,11 +160,15 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
                       key={dayName}
                       style={[
                         styles.dayChip,
-                        { backgroundColor: active ? colors.accent : chipBg, borderColor: active ? colors.accent : colors.glassBorder },
+                        {
+                          backgroundColor: active ? colors.accent : chipBg,
+                          borderColor: active ? colors.accent : colors.glassBorder,
+                          ...(active && styles.activeChipGlow),
+                        },
                       ]}
                       onPress={() => toggleDay(idx)}
                     >
-                      <Text style={[styles.dayChipText, { color: active ? "#FFFFFF" : colors.textSecondary }]}>{dayName}</Text>
+                      <Text style={[styles.dayChipText, { color: active ? "#FFFFFF" : colors.textSecondary, fontWeight: active ? "700" : "600" }]}>{dayName}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -171,7 +192,7 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
                 <Switch
                   value={row.val}
                   onValueChange={row.set}
-                  trackColor={{ false: chipBg, true: colors.accent }}
+                  trackColor={{ false: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)", true: colors.accent }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -190,42 +211,56 @@ export function GymReminderModal({ visible, onClose, onSaved }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
   },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 20,
     paddingBottom: 40,
     maxHeight: "88%",
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderBottomWidth: 0,
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    elevation: 24,
     gap: 4,
   },
+  highlight: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    zIndex: 1,
+  },
   handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
+    width: 38,
+    height: 5,
+    borderRadius: 2.5,
     alignSelf: "center",
-    marginBottom: 12,
-    opacity: 0.4,
+    marginBottom: 14,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: { fontSize: 20, fontWeight: "700", letterSpacing: 0.38 },
   closeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 0.5,
     alignItems: "center",
     justifyContent: "center",
   },
-  closeText: { fontSize: 14, fontWeight: "600" },
+  closeText: { fontSize: 13, fontWeight: "600" },
   section: { gap: 8 },
   sectionLabel: { fontSize: 15, fontWeight: "600", letterSpacing: -0.2 },
   sectionSub: { fontSize: 12, marginTop: -4 },
@@ -236,7 +271,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 0.5,
   },
-  chipText: { fontSize: 13, fontWeight: "500" },
+  activeChipGlow: {
+    shadowColor: "#0A84FF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  chipText: { fontSize: 13 },
   daysRow: { flexDirection: "row", justifyContent: "space-between" },
   dayChip: {
     width: 42,
@@ -246,12 +288,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 0.5,
   },
-  dayChipText: { fontSize: 12, fontWeight: "600" },
+  dayChipText: { fontSize: 12 },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderTopWidth: 0.5,
   },
   switchTitle: { fontSize: 15, fontWeight: "600" },

@@ -1,10 +1,10 @@
 import React, { ReactNode } from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle, StyleProp } from "react-native";
 import { useTheme } from "@/store/ThemeContext";
 
 interface GlassCardProps {
   children: ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   /** Extra glass strength — increases border and highlight opacity */
   strong?: boolean;
   /** Remove padding (for full-bleed content) */

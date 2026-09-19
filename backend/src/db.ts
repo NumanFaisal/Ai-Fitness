@@ -1,4 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import postgres from "postgres";
+
+// Supabase Direct Postgres Client
+const connectionString = process.env.DATABASE_URL || "";
+export const sql = postgres(connectionString);
 
 // Global Prisma instance
 export const prisma = new PrismaClient({
@@ -38,6 +43,7 @@ export interface UserSessionState {
   waterLogs: { amountMl: number; loggedAt: Date }[];
   jobs: Map<string, { status: "QUEUED" | "PROCESSING" | "COMPLETE" | "FAILED"; result?: any; error?: string }>;
   hasCompletedOnboarding?: boolean;
+  bodyPhotos?: { frontUrl?: string; sideUrl?: string; backUrl?: string; analysis?: any; [key: string]: any };
 }
 
 import fs from "fs";
@@ -134,6 +140,7 @@ export function saveUserState(userId: string) {
         aiPlan: (state as any).aiPlan,
         aiMeals: (state as any).aiMeals,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
+        bodyPhotos: state.bodyPhotos,
       };
       fs.writeFileSync(STORE_FILE, JSON.stringify(current, null, 2), "utf-8");
     }
@@ -159,6 +166,7 @@ export function getUserState(userId: string): UserSessionState {
         waterLogs: saved.waterLogs || [],
         jobs: new Map(),
         hasCompletedOnboarding: Boolean(saved.hasCompletedOnboarding),
+        bodyPhotos: saved.bodyPhotos,
       });
       const st = memoryStore.get(userId)!;
       if (saved.reminders) (st as any).reminders = saved.reminders;

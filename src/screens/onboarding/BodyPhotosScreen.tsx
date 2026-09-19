@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -13,6 +14,7 @@ import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useOnboarding } from "@/store/OnboardingContext";
+import { endpoints } from "@/api/endpoints";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { OnboardingStackParamList } from "@/navigation/OnboardingNavigator";
 
@@ -27,8 +29,40 @@ const ANGLES: { label: string; value: "FRONT" | "BACK" | "LEFT" | "RIGHT" }[] = 
 type Angle = "FRONT" | "BACK" | "LEFT" | "RIGHT";
 
 export function BodyPhotosScreen({ navigation }: Props) {
-  const { bodyPhotos, setBodyPhotos } = useOnboarding();
+  const {
+    profile,
+    goal,
+    bodyPhotos,
+    setBodyPhotos,
+    userPhysiqueAnalysis,
+    setUserPhysiqueAnalysis,
+  } = useOnboarding();
   const [photos, setPhotos] = useState<Partial<Record<Angle, string>>>(bodyPhotos || {});
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(userPhysiqueAnalysis || null);
+
+  async function analyzePhotoAsync(base64Data: string, angle: Angle) {
+    setScanning(true);
+    try {
+      const res = await endpoints.analyzeUserBodyPhoto({
+        imageBase64: base64Data,
+        angle,
+        heightCm: profile.heightCm || 175,
+        currentWeightKg: profile.weightKg || 75,
+        sex: profile.sex || "MALE",
+        age: profile.age || 25,
+        goal: goal?.type || "RECOMPOSITION",
+      });
+      if (res) {
+        setScanResult(res);
+        setUserPhysiqueAnalysis(res);
+      }
+    } catch (err) {
+      console.warn("Body photo scan notice:", err);
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function takeWithCamera(angle: Angle, label: string) {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -38,12 +72,18 @@ export function BodyPhotosScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      quality: 0.7,
+      quality: 0.6,
+      base64: true,
       allowsEditing: true,
       aspect: [3, 4],
     });
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => ({ ...prev, [angle]: result.assets[0].uri }));
+      const uri = result.assets[0].uri;
+      const base64 = result.assets[0].base64
+        ? `data:image/jpeg;base64,${result.assets[0].base64}`
+        : uri;
+      setPhotos((prev) => ({ ...prev, [angle]: base64 }));
+      analyzePhotoAsync(base64, angle);
     }
   }
 
@@ -55,12 +95,18 @@ export function BodyPhotosScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      quality: 0.7,
+      quality: 0.6,
+      base64: true,
       allowsEditing: true,
       aspect: [3, 4],
     });
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => ({ ...prev, [angle]: result.assets[0].uri }));
+      const uri = result.assets[0].uri;
+      const base64 = result.assets[0].base64
+        ? `data:image/jpeg;base64,${result.assets[0].base64}`
+        : uri;
+      setPhotos((prev) => ({ ...prev, [angle]: base64 }));
+      analyzePhotoAsync(base64, angle);
     }
   }
 
@@ -85,7 +131,7 @@ export function BodyPhotosScreen({ navigation }: Props) {
     );
   }
 
-  const canContinue = ANGLES.every((a) => photos[a.value]);
+  const canContinue = ANGLES.some((a) => photos[a.value]);
 
   return (
     <ScrollView
@@ -94,7 +140,7 @@ export function BodyPhotosScreen({ navigation }: Props) {
     >
       <Text style={styles.title}>Current body photos</Text>
       <Text style={styles.subtitle}>
-        Use consistent lighting, distance, and posture. These establish your baseline and are stored privately.
+        Upload or take a photo. Our vision AI analyzes body composition, posture, and muscular leverage to dynamically build your workout and diet.
       </Text>
 
       <View style={styles.grid}>
@@ -122,12 +168,41 @@ export function BodyPhotosScreen({ navigation }: Props) {
         ))}
       </View>
 
+      {/* AI Vision Scan Status & Feedback */}
+      {scanning && (
+        <View style={styles.scanCard}>
+          <ActivityIndicator size="small" color={colors.moss} />
+          <Text style={styles.scanText}>Analyzing posture, frame & body fat from photo...</Text>
+        </View>
+      )}
+
+      {!scanning && scanResult && (
+        <View style={styles.scanResultCard}>
+          <View style={styles.scanHeaderRow}>
+            <View style={styles.scanTag}>
+              <Text style={styles.scanTagText}>AI VISION SCAN</Text>
+            </View>
+            <Text style={styles.bfText}>~{scanResult.estimatedBodyFatPct}% Body Fat ({scanResult.bodyFatCategory || "Athletic"})</Text>
+          </View>
+          <Text style={styles.scanNarrative}>{scanResult.summaryNarrative}</Text>
+          {scanResult.developmentPriorityMuscles && (
+            <View style={styles.priorityRow}>
+              <Text style={styles.priorityLabel}>Priority Muscle Groups:</Text>
+              <Text style={styles.priorityValue}>
+                {scanResult.developmentPriorityMuscles.slice(0, 3).join(" • ")}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
       <View style={{ gap: 12, marginTop: 8 }}>
         <PrimaryButton
           label="Continue"
           disabled={!canContinue}
           onPress={() => {
             setBodyPhotos(photos as any);
+            if (scanResult) setUserPhysiqueAnalysis(scanResult);
             navigation.navigate("TargetPhoto");
           }}
         />
@@ -200,4 +275,72 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   image: { width: "100%", height: "100%" },
+  scanCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(107, 142, 35, 0.12)",
+    borderColor: colors.moss,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+  },
+  scanText: {
+    color: colors.bone,
+    fontSize: 13,
+    flex: 1,
+  },
+  scanResultCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.moss,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 14,
+    gap: 8,
+  },
+  scanHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  scanTag: {
+    backgroundColor: colors.moss,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  scanTagText: {
+    color: colors.ink,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  bfText: {
+    color: colors.moss,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  scanNarrative: {
+    color: colors.ash,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  priorityRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    alignItems: "center",
+    marginTop: 2,
+  },
+  priorityLabel: {
+    color: colors.bone,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  priorityValue: {
+    color: colors.moss,
+    fontSize: 12,
+    fontWeight: "500",
+  },
 });
+

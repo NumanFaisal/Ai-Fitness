@@ -8,11 +8,23 @@ export interface SafetyEvaluationInput {
   targetWeightKg?: number;
 }
 
+export interface WorkoutSafetyConstraints {
+  conservativeMode: boolean;
+  maxRPE: number;
+  maxSetsPerExercise: number;
+  weeklyVolumeMultiplier: number;
+  prohibitedExercises: string[];
+  prohibitedMovementPatterns: string[];
+  allowedCardioIntensity: "LOW" | "MODERATE" | "HIGH";
+  restIntervalSeconds: number;
+}
+
 export interface SafetyEvaluationResult {
   isSafe: boolean;
   reasons: string[];
   recommendation: string;
   enforceConservativePlan: boolean;
+  workoutConstraints: WorkoutSafetyConstraints;
 }
 
 const HIGH_RISK_KEYWORDS = [
@@ -35,10 +47,13 @@ const HIGH_RISK_KEYWORDS = [
 
 export function evaluateSafetyGate(input: SafetyEvaluationInput): SafetyEvaluationResult {
   const reasons: string[] = [];
+  const prohibitedExercises: string[] = [];
+  const prohibitedMovementPatterns: string[] = [];
 
   // 1. Age safety
   if (input.age < 16) {
     reasons.push("User is under 16 years of age. Adolescent training requires pediatric medical clearance.");
+    prohibitedMovementPatterns.push("HEAVY_COMPRESSION");
   }
 
   // 2. Check for high-risk injuries or medical conditions
@@ -50,6 +65,16 @@ export function evaluateSafetyGate(input: SafetyEvaluationInput): SafetyEvaluati
     for (const keyword of HIGH_RISK_KEYWORDS) {
       if (item.includes(keyword)) {
         reasons.push(`Medical flag identified: "${item}". Professional clearance required.`);
+        if (keyword.includes("disc") || keyword.includes("spine") || keyword.includes("spinal")) {
+          prohibitedExercises.push("barbell-back-squat", "romanian-deadlift", "barbell-bent-over-row", "good-morning");
+          prohibitedMovementPatterns.push("HEAVY_AXIAL_LOAD", "SPINAL_COMPRESSION");
+        }
+        if (keyword.includes("shoulder") || keyword.includes("rotator cuff")) {
+          prohibitedExercises.push("barbell-overhead-press", "chest-dips");
+        }
+        if (keyword.includes("acl") || keyword.includes("knee")) {
+          prohibitedExercises.push("barbell-back-squat");
+        }
         break;
       }
     }
@@ -77,6 +102,18 @@ export function evaluateSafetyGate(input: SafetyEvaluationInput): SafetyEvaluati
   }
 
   const isSafe = reasons.length === 0;
+  const enforceConservativePlan = !isSafe;
+
+  const workoutConstraints: WorkoutSafetyConstraints = {
+    conservativeMode: enforceConservativePlan,
+    maxRPE: enforceConservativePlan ? 7.0 : 9.0,
+    maxSetsPerExercise: enforceConservativePlan ? 3 : 4,
+    weeklyVolumeMultiplier: enforceConservativePlan ? 0.75 : 1.0,
+    prohibitedExercises,
+    prohibitedMovementPatterns,
+    allowedCardioIntensity: enforceConservativePlan ? "LOW" : "HIGH",
+    restIntervalSeconds: enforceConservativePlan ? 90 : 60,
+  };
 
   return {
     isSafe,
@@ -84,6 +121,7 @@ export function evaluateSafetyGate(input: SafetyEvaluationInput): SafetyEvaluati
     recommendation: isSafe
       ? "Standard evidence-based plan approved for generation."
       : "Safety gate triggered: Auto-generation redirected to a conservative low-impact baseline with a recommendation to consult a medical or physical therapy professional.",
-    enforceConservativePlan: !isSafe,
+    enforceConservativePlan,
+    workoutConstraints,
   };
 }

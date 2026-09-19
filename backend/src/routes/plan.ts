@@ -7,63 +7,124 @@ import { calculateNutrition } from "../engines/nutritionEngine";
 import { calculateHydration } from "../engines/hydrationEngine";
 import { generateWorkoutPlan } from "../engines/workoutEngine";
 import { generateAIPlanDetails } from "../services/aiService";
+import { personalizationContextBuilder } from "../services/personalizationContextBuilder";
+import { progressionService } from "../services/progressionService";
+import { nutritionPlanner } from "../services/nutritionPlanner";
+import { generateDynamicWorkoutPlan } from "../services/aiWorkoutPlanner";
+import { analyzeUserBodyPhoto } from "../services/aiVisionService";
 
 export const planRouter = Router();
 
 planRouter.use(authMiddleware);
 
 // POST /analysis/start
-planRouter.post("/analysis/start", (req: AuthRequest, res: Response) => {
+planRouter.post("/analysis/start", async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const userState = getUserState(userId);
   const jobId = `job_${Date.now()}`;
 
   userState.jobs.set(jobId, { status: "PROCESSING" });
 
-  // Execute async processing
-  setTimeout(() => {
-    // 1. Run safety gate
-    const safety = evaluateSafetyGate({
-      age: userState.profile?.age ?? 25,
-      injuries: userState.fitnessProfile?.injuries ?? [],
-      physicalLimitations: userState.fitnessProfile?.physicalLimitations ?? [],
-      goal: userState.goal?.type ?? "GENERAL_FITNESS",
-      targetDate: userState.fitnessProfile?.targetDate,
-    });
+  // Execute processing
+  setTimeout(async () => {
+    try {
+      const context = await personalizationContextBuilder.buildContext(userId);
 
-    // 2. Run deterministic nutrition engine
-    const nutrition = calculateNutrition({
-      weightKg: userState.profile?.weightKg ?? 75,
-      heightCm: userState.profile?.heightCm ?? 175,
-      age: userState.profile?.age ?? 25,
-      sex: userState.profile?.sex ?? "MALE",
-      workoutDaysPerWeek: userState.fitnessProfile?.workoutDaysPerWeek ?? 4,
-      goal: userState.goal?.type ?? "GENERAL_FITNESS",
-      budgetTier: userState.fitnessProfile?.budgetTier ?? "MEDIUM",
-      isConservativeSafeMode: !safety.isSafe,
-    });
+      // Run automatic body photo analysis if photo exists and analysis not yet saved
+      if (!(userState as any).userPhysiqueAnalysis && userState.bodyPhotos) {
+        const photoKey = Object.keys(userState.bodyPhotos)[0];
+        if (photoKey && userState.bodyPhotos[photoKey]) {
+          try {
+            const scan = await analyzeUserBodyPhoto({
+              imageBase64: userState.bodyPhotos[photoKey],
+              angle: photoKey as any,
+              heightCm: context.profile.heightCm,
+              currentWeightKg: context.profile.weightKg,
+              sex: context.profile.sex,
+              age: context.profile.age,
+              goal: context.goal.type,
+            });
+            (userState as any).userPhysiqueAnalysis = scan;
+            (context as any).userPhysiqueAnalysis = scan;
+          } catch {}
+        }
+      }
 
-    // 3. Run deterministic workout engine
-    const workout = generateWorkoutPlan({
-      experienceLevel: userState.fitnessProfile?.experienceLevel ?? "BEGINNER",
-      trainingEnvironment: userState.fitnessProfile?.trainingEnvironment ?? "GYM",
-      equipmentAvailable: userState.fitnessProfile?.equipmentAvailable ?? ["barbell", "dumbbell"],
-      workoutDaysPerWeek: userState.fitnessProfile?.workoutDaysPerWeek ?? 4,
-      sessionDurationMin: userState.fitnessProfile?.sessionDurationMin ?? 45,
-      injuries: userState.fitnessProfile?.injuries ?? [],
-      goal: userState.goal?.type ?? "GENERAL_FITNESS",
-      targetPhysiqueFocus: (userState as any).targetPhysique?.standoutMuscles || [],
-    });
+      // 1. Run safety gate
+      const safety = evaluateSafetyGate({
+        age: context.profile.age,
+        injuries: context.safety.injuries,
+        physicalLimitations: context.safety.physicalLimitations,
+        goal: context.goal.type,
+        targetDate: context.training.targetDate,
+      });
 
-    // Store in user state
-    userState.nutritionPlan = nutrition;
-    userState.workoutPlan = workout;
+      // 2. Run deterministic nutrition engine
+      const nutrition = calculateNutrition({
+        weightKg: context.profile.weightKg,
+        heightCm: context.profile.heightCm,
+        age: context.profile.age,
+        sex: context.profile.sex,
+        workoutDaysPerWeek: context.training.workoutDaysPerWeek,
+        goal: context.goal.type,
+        budgetTier: context.nutrition.budgetTier,
+        isConservativeSafeMode: context.safety.conservativeMode,
+      });
 
-    userState.jobs.set(jobId, {
-      status: "COMPLETE",
-      result: { safety, nutrition, workout },
-    });
-  }, 1200);
+      // 3. Run dynamic AI workout engine driven by user image, profile, and goal
+      const rawWorkout = await generateDynamicWorkoutPlan({
+        userId,
+        profile: context.profile,
+        goal: context.goal,
+        training: context.training,
+        safety: {
+          conservativeMode: context.safety.conservativeMode,
+          injuries: context.safety.injuries,
+          physicalLimitations: context.safety.physicalLimitations,
+          maxRPE: context.safety.maxRPE,
+          maxSetsPerExercise: context.safety.maxSetsPerExercise,
+        },
+        userPhysiqueAnalysis: (userState as any).userPhysiqueAnalysis || (context as any).userPhysiqueAnalysis,
+        targetPhysique: context.targetPhysique,
+      });
+
+      // 4. Apply progression cycle
+      const workout = progressionService.applyProgressionToWorkout(userId, rawWorkout);
+
+      // 5. Store in user state
+      userState.nutritionPlan = nutrition;
+      userState.workoutPlan = workout;
+
+      // 6. Dynamic nutrition assembly
+      const dynamicNutrition = await nutritionPlanner.assembleDynamicPlan(context);
+      (userState as any).aiMeals = dynamicNutrition.meals;
+
+      const currentVer = (userState as any).planVersion;
+      const nextVerNum = currentVer ? parseInt(currentVer.replace(/\D/g, ""), 10) + 1 : 1;
+      (userState as any).planVersion = `Plan v${nextVerNum}`;
+      (userState as any).planGeneratedAt = new Date().toISOString();
+      (userState as any).planSource = dynamicNutrition.generatedBy;
+
+      userState.jobs.set(jobId, {
+        status: "COMPLETE",
+        result: {
+          safety,
+          nutrition,
+          workout,
+          planVersion: (userState as any).planVersion,
+          generatedBy: dynamicNutrition.generatedBy,
+        },
+      });
+
+      saveUserState(userId);
+    } catch (err: any) {
+      console.error("Analysis job error:", err);
+      userState.jobs.set(jobId, {
+        status: "FAILED",
+        error: err?.message || "Analysis generation failure",
+      });
+    }
+  }, 500);
 
   return res.json({ jobId });
 });
@@ -78,7 +139,7 @@ planRouter.get("/analysis/:jobId", (req: AuthRequest, res: Response) => {
     return res.status(404).json({ message: "Job not found." });
   }
 
-  return res.json({ status: job.status });
+  return res.json({ status: job.status, result: job.result, error: job.error });
 });
 
 // POST /plan/generate
@@ -87,82 +148,139 @@ planRouter.post("/plan/generate", async (req: AuthRequest, res: Response) => {
   const userState = getUserState(userId);
   const jobId = `plan_${Date.now()}`;
 
+  let context = await personalizationContextBuilder.buildContext(userId);
+
+  // Run automatic body photo analysis if photo exists and analysis not yet saved
+  if (!(userState as any).userPhysiqueAnalysis && userState.bodyPhotos) {
+    const photoKey = Object.keys(userState.bodyPhotos)[0];
+    if (photoKey && userState.bodyPhotos[photoKey]) {
+      try {
+        const scan = await analyzeUserBodyPhoto({
+          imageBase64: userState.bodyPhotos[photoKey],
+          angle: photoKey as any,
+          heightCm: context.profile.heightCm,
+          currentWeightKg: context.profile.weightKg,
+          sex: context.profile.sex,
+          age: context.profile.age,
+          goal: context.goal.type,
+        });
+        (userState as any).userPhysiqueAnalysis = scan;
+        (context as any).userPhysiqueAnalysis = scan;
+      } catch {}
+    }
+  }
+
   // 1. Run safety gate
   const safety = evaluateSafetyGate({
-    age: userState.profile?.age ?? 25,
-    injuries: userState.fitnessProfile?.injuries ?? [],
-    physicalLimitations: userState.fitnessProfile?.physicalLimitations ?? [],
-    goal: userState.goal?.type ?? "GENERAL_FITNESS",
-    targetDate: userState.fitnessProfile?.targetDate,
+    age: context.profile.age,
+    injuries: context.safety.injuries,
+    physicalLimitations: context.safety.physicalLimitations,
+    goal: context.goal.type,
+    targetDate: context.training.targetDate,
   });
 
   // 2. Run deterministic nutrition engine
   const nutrition = calculateNutrition({
-    weightKg: userState.profile?.weightKg ?? 75,
-    heightCm: userState.profile?.heightCm ?? 175,
-    age: userState.profile?.age ?? 25,
-    sex: userState.profile?.sex ?? "MALE",
-    workoutDaysPerWeek: userState.fitnessProfile?.workoutDaysPerWeek ?? 4,
-    goal: userState.goal?.type ?? "GENERAL_FITNESS",
-    budgetTier: userState.fitnessProfile?.budgetTier ?? "MEDIUM",
-    isConservativeSafeMode: !safety.isSafe,
+    weightKg: context.profile.weightKg,
+    heightCm: context.profile.heightCm,
+    age: context.profile.age,
+    sex: context.profile.sex,
+    workoutDaysPerWeek: context.training.workoutDaysPerWeek,
+    goal: context.goal.type,
+    budgetTier: context.nutrition.budgetTier,
+    isConservativeSafeMode: context.safety.conservativeMode,
   });
 
-  // 3. Run deterministic workout engine
-  const workout = generateWorkoutPlan({
-    experienceLevel: userState.fitnessProfile?.experienceLevel ?? "BEGINNER",
-    trainingEnvironment: userState.fitnessProfile?.trainingEnvironment ?? "GYM",
-    equipmentAvailable: userState.fitnessProfile?.equipmentAvailable ?? ["barbell", "dumbbell"],
-    workoutDaysPerWeek: userState.fitnessProfile?.workoutDaysPerWeek ?? 4,
-    sessionDurationMin: userState.fitnessProfile?.sessionDurationMin ?? 45,
-    injuries: userState.fitnessProfile?.injuries ?? [],
-    goal: userState.goal?.type ?? "GENERAL_FITNESS",
-    targetPhysiqueFocus: (userState as any).targetPhysique?.standoutMuscles || [],
+  // 3. Run dynamic AI workout engine driven by user image, profile, and goal
+  const rawWorkout = await generateDynamicWorkoutPlan({
+    userId,
+    profile: context.profile,
+    goal: context.goal,
+    training: context.training,
+    safety: {
+      conservativeMode: context.safety.conservativeMode,
+      injuries: context.safety.injuries,
+      physicalLimitations: context.safety.physicalLimitations,
+      maxRPE: context.safety.maxRPE,
+      maxSetsPerExercise: context.safety.maxSetsPerExercise,
+    },
+    userPhysiqueAnalysis: (userState as any).userPhysiqueAnalysis || (context as any).userPhysiqueAnalysis,
+    targetPhysique: context.targetPhysique,
   });
+
+  // 4. Apply progression service
+  const workout = progressionService.applyProgressionToWorkout(userId, rawWorkout);
 
   // Store in user state
   userState.nutritionPlan = nutrition;
   userState.workoutPlan = workout;
 
-  // 4. Generate AI Meals & Coaching Narrative
+  // 5. Generate AI Meals or Algorithmic Database Fallback
+  let generatedBy = "ALGORITHMIC_FOOD_DATABASE";
   try {
     const aiDetails = await generateAIPlanDetails({
-      name: userState.profile?.name || "Athlete",
-      age: userState.profile?.age || 25,
-      sex: userState.profile?.sex || "MALE",
-      goal: userState.goal?.type || "GENERAL_FITNESS",
+      name: context.profile.name,
+      age: context.profile.age,
+      sex: context.profile.sex,
+      goal: context.goal.type,
       calorieTarget: nutrition.calorieTarget.value,
       proteinTarget: nutrition.proteinTargetG.value,
-      dietaryPreference: userState.fitnessProfile?.dietaryPreference || "None",
-      allergies: userState.fitnessProfile?.allergies || [],
-      dislikedFoods: userState.fitnessProfile?.dislikedFoods || [],
-      budgetTier: userState.fitnessProfile?.budgetTier || "MEDIUM",
+      dietaryPreference: context.nutrition.dietaryPreference,
+      allergies: context.nutrition.allergies || [],
+      dislikedFoods: context.nutrition.dislikedFoods,
+      budgetTier: context.nutrition.budgetTier,
       workoutFocus: workout.days[0]?.focus || "Full Body",
       exercises: workout.days[0]?.exercises.map((e: any) => e.exerciseName) || [],
-      experienceLevel: userState.fitnessProfile?.experienceLevel,
-      trainingEnvironment: userState.fitnessProfile?.trainingEnvironment,
-      equipmentAvailable: userState.fitnessProfile?.equipmentAvailable,
-      injuries: userState.fitnessProfile?.injuries,
+      experienceLevel: context.training.experienceLevel,
+      trainingEnvironment: context.training.trainingEnvironment,
+      equipmentAvailable: context.training.equipmentAvailable,
+      injuries: context.safety.injuries,
+      userPhysiqueAnalysis: (userState as any).userPhysiqueAnalysis || (context as any).userPhysiqueAnalysis,
+      targetPhysique: context.targetPhysique,
     });
 
-    if (aiDetails) {
+    if (aiDetails && aiDetails.meals && aiDetails.meals.length > 0) {
       (userState as any).aiPlan = aiDetails;
       (userState as any).aiMeals = aiDetails.meals;
+      generatedBy = (aiDetails as any).generatedBy || "AI_GROQ_GEMINI";
+    } else {
+      const dynamicNutrition = await nutritionPlanner.assembleDynamicPlan(context);
+      (userState as any).aiMeals = dynamicNutrition.meals;
+      generatedBy = dynamicNutrition.generatedBy;
     }
   } catch (err) {
-    console.warn("AI plan detail generation error:", err);
+    console.warn("AI plan detail generation error, assembling algorithmic plan:", err);
+    const dynamicNutrition = await nutritionPlanner.assembleDynamicPlan(context);
+    (userState as any).aiMeals = dynamicNutrition.meals;
+    generatedBy = dynamicNutrition.generatedBy;
   }
+
+  const currentVer = (userState as any).planVersion;
+  const nextVerNum = currentVer ? parseInt(currentVer.replace(/\D/g, ""), 10) + 1 : 1;
+  (userState as any).planVersion = `Plan v${nextVerNum}`;
+  (userState as any).planGeneratedAt = new Date().toISOString();
+  (userState as any).planSource = generatedBy;
 
   userState.hasCompletedOnboarding = true;
 
   userState.jobs.set(jobId, {
     status: "COMPLETE",
-    result: { safety, nutrition, workout },
+    result: {
+      safety,
+      nutrition,
+      workout,
+      planVersion: (userState as any).planVersion,
+      generatedBy,
+    },
   });
 
   saveUserState(userId);
 
-  return res.json({ jobId });
+  return res.json({
+    jobId,
+    planVersion: (userState as any).planVersion,
+    generatedBy,
+  });
 });
 
 // GET /user/status - Check if user has a generated plan in database
@@ -173,17 +291,18 @@ planRouter.get("/user/status", (req: AuthRequest, res: Response) => {
   return res.json({
     hasPlan,
     hasCompletedOnboarding: Boolean(userState.hasCompletedOnboarding),
+    planVersion: (userState as any).planVersion || "Plan v1",
   });
 });
 
 function enrichExercise(ex: any) {
   return {
     ...ex,
-    youtubeUrl: `https://www.youtube.com/results?search_query=how+to+do+${encodeURIComponent(ex.exerciseName)}+form`,
+    youtubeUrl: `https://www.youtube.com/results?search_query=how+to+do+${encodeURIComponent(ex.exerciseName || ex.name)}+form`,
   };
 }
 
-// GET /workout/week - All 7 days
+// GET /workout/week - All days
 planRouter.get("/workout/week", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const userState = getUserState(userId);
@@ -210,9 +329,9 @@ planRouter.get("/workout/today", (req: AuthRequest, res: Response) => {
   }
 
   const todayDayOfWeek = new Date().getDay(); // 0 = Sun, 1 = Mon ...
-  const match = userState.workoutPlan.days.find(
-    (d: any) => d.dayOfWeek === todayDayOfWeek
-  ) || userState.workoutPlan.days[0];
+  const match =
+    userState.workoutPlan.days.find((d: any) => d.dayOfWeek === todayDayOfWeek) ||
+    userState.workoutPlan.days[0];
 
   if (!match) return res.json(null);
 
@@ -223,7 +342,7 @@ planRouter.get("/workout/today", (req: AuthRequest, res: Response) => {
 });
 
 // GET /nutrition/today
-planRouter.get("/nutrition/today", (req: AuthRequest, res: Response) => {
+planRouter.get("/nutrition/today", async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const userState = getUserState(userId);
 
@@ -232,37 +351,38 @@ planRouter.get("/nutrition/today", (req: AuthRequest, res: Response) => {
   }
 
   const np = userState.nutritionPlan;
-  const aiMeals = (userState as any).aiMeals;
+  let aiMeals = (userState as any).aiMeals;
 
-  const meals = (aiMeals && aiMeals.length > 0)
-    ? aiMeals.map((m: any) => ({
-        mealSlot: m.mealSlot,
-        recipeTitle: m.recipeTitle,
-        ingredients: m.ingredients || [],
-        instructions: m.instructions || [
-          "Prepare all measured ingredients as specified.",
-          "Cook protein and complex carbs according to package directions.",
-          "Plate meal with healthy greens and enjoy fresh."
-        ],
-        youtubeUrl: `https://www.youtube.com/results?search_query=how+to+make+${encodeURIComponent(m.recipeTitle)}`,
-        calories: { value: m.calories, provenance: "CALCULATED" },
-        proteinG: { value: m.proteinG, provenance: "CALCULATED" },
-      }))
-    : np.recommendedMealSlots.map((slot: string) => ({
-        mealSlot: slot,
-        recipeTitle: `${np.budgetTier.toLowerCase()} tier healthy ${slot.toLowerCase()}`,
-        ingredients: ["Balanced lean proteins and complex carbohydrates"],
-        instructions: ["Prepare ingredients fresh and season to taste."],
-        youtubeUrl: `https://www.youtube.com/results?search_query=healthy+${encodeURIComponent(slot)}+fitness+meal`,
-        calories: { value: Math.round(np.calorieTarget.value / 4), provenance: "CALCULATED" },
-        proteinG: { value: Math.round(np.proteinTargetG.value / 4), provenance: "CALCULATED" },
-      }));
+  // If aiMeals is not present, dynamically assemble meals from database
+  if (!aiMeals || aiMeals.length === 0) {
+    const context = await personalizationContextBuilder.buildContext(userId);
+    const dynamicPlan = await nutritionPlanner.assembleDynamicPlan(context);
+    aiMeals = dynamicPlan.meals;
+    (userState as any).aiMeals = aiMeals;
+    saveUserState(userId);
+  }
+
+  const meals = aiMeals.map((m: any) => ({
+    mealSlot: m.mealSlot,
+    recipeTitle: m.recipeTitle,
+    ingredients: m.ingredients || [],
+    instructions: m.instructions || [
+      "Prepare all measured ingredients as specified.",
+      "Cook protein and complex carbs according to package directions.",
+      "Plate meal with healthy greens and enjoy fresh.",
+    ],
+    youtubeUrl: `https://www.youtube.com/results?search_query=how+to+make+${encodeURIComponent(m.recipeTitle)}`,
+    calories: { value: m.calories, provenance: "CALCULATED" },
+    proteinG: { value: m.proteinG, provenance: "CALCULATED" },
+  }));
 
   return res.json({
     calorieTarget: np.calorieTarget,
     proteinTargetG: np.proteinTargetG,
     carbTargetG: np.carbTargetG,
     fatTargetG: np.fatTargetG,
+    planVersion: (userState as any).planVersion || "Plan v1",
+    generatedBy: (userState as any).planSource || "ALGORITHMIC_FOOD_DATABASE",
     meals,
   });
 });
@@ -273,7 +393,7 @@ planRouter.get("/user/reminders", (req: AuthRequest, res: Response) => {
   const userState = getUserState(userId);
   const reminders = (userState as any).reminders || {
     gymTime: "18:00",
-    gymDays: [1, 2, 4, 5], // Mon, Tue, Thu, Fri
+    gymDays: [1, 2, 4, 5],
     mealReminders: true,
     waterReminders: true,
     waterIntervalHours: 2,
@@ -351,7 +471,10 @@ planRouter.get("/progress/dashboard", (req: AuthRequest, res: Response) => {
     {
       snapshotDate: new Date().toISOString().split("T")[0],
       weightKg: userState.profile?.weightKg ?? 75,
-      aiNarrative: (userState as any).aiPlan?.coachNarrative || "Baseline registered. Your strength progression and habit compliance are calibrated against your targets.",
+      planVersion: (userState as any).planVersion || "Plan v1",
+      aiNarrative:
+        (userState as any).aiPlan?.coachNarrative ||
+        "Baseline registered. Your strength progression and habit compliance are calibrated against your targets.",
     },
   ]);
 });

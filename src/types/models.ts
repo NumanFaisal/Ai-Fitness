@@ -71,6 +71,7 @@ export interface WorkoutExerciseItem {
   repRangeHigh: number;
   restSeconds: number;
   rpeTarget?: number;
+  progressionNote?: string;
 }
 
 export interface WorkoutDay {
@@ -139,6 +140,21 @@ export interface AIChatMessage {
   createdAt: string;
 }
 
+export interface UserPhysiqueAnalysis {
+  estimatedBodyFatPct: number;
+  bodyFatCategory: "LEAN" | "ATHLETIC" | "MODERATE" | "HIGH";
+  somatotype: "ECTOMORPH" | "MESOMORPH" | "ENDOMORPH" | "HYBRID";
+  postureAssessment: string;
+  visualStrengths: string[];
+  developmentPriorityMuscles: string[];
+  fatDistributionPattern: string;
+  trainingDirectives: string[];
+  nutritionDirectives: string[];
+  summaryNarrative: string;
+  confidenceScore: number;
+  provenance: "OBSERVED" | "ESTIMATED";
+}
+
 export interface TargetBodyBlueprint {
   currentStats: {
     name: string;
@@ -155,6 +171,7 @@ export interface TargetBodyBlueprint {
     estimatedWeeks: number;
     targetDate: string;
   };
+  userPhysiqueAnalysis?: UserPhysiqueAnalysis | null;
   nutritionBlueprint: {
     calorieTarget: number;
     proteinTargetG: number;
@@ -183,7 +200,11 @@ export interface TargetBodyBlueprint {
 }
 
 export interface FullProfileData {
-  profile?: UserProfile & { weightKg?: number };
+  profile?: UserProfile & { weightKg?: number; targetWeightKg?: number; bodyPhotos?: Record<string, string> };
   fitnessProfile?: FitnessProfile;
   goal?: Goal;
+  targetPhysique?: any;
+  userPhysiqueAnalysis?: UserPhysiqueAnalysis;
+  bodyPhotos?: Record<string, string>;
 }
+

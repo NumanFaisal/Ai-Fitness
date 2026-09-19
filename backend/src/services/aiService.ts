@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import { nutritionPlanner } from "./nutritionPlanner";
 
 dotenv.config();
 
@@ -17,7 +18,10 @@ export interface AIPersonalizedPlan {
     youtubeSearch?: string;
     calories: number;
     proteinG: number;
+    nutritionConfidence?: number;
   }[];
+  generatedBy: string;
+  source: "llm-groq" | "llm-gemini" | "catalog-fallback";
 }
 
 /**
@@ -194,6 +198,8 @@ export interface AIPlanUserContext {
   trainingEnvironment?: string;
   equipmentAvailable?: string[];
   injuries?: string[];
+  userPhysiqueAnalysis?: any;
+  targetPhysique?: any;
 }
 
 /**
@@ -278,7 +284,11 @@ ${userContext.budgetTier === "LOW" ? `  * CRITICAL LOW BUDGET RULES:
 - Never include allergens, even trace/derivative forms: ${userContext.allergies.join(", ") || "None"}.`;
 
 
-  const userPrompt = `Generate day 1 of a personalized plan.
+  const visualNotes = userContext.userPhysiqueAnalysis
+    ? `\nVISUAL BODY SCAN INSIGHTS:\n- Estimated Body Fat: ~${userContext.userPhysiqueAnalysis.estimatedBodyFatPct}%\n- Somatotype: ${userContext.userPhysiqueAnalysis.somatotype || "Mesomorph"}\n- Postural/Structural: ${userContext.userPhysiqueAnalysis.postureAssessment || "Neutral"}\n- Visual Focus Areas: ${userContext.userPhysiqueAnalysis.developmentPriorityMuscles?.join(", ") || "Upper body & Core"}\n- Visual Directives: ${userContext.userPhysiqueAnalysis.nutritionDirectives?.join("; ") || "Targeted protein synthesis"}`
+    : "";
+
+  const userPrompt = `Generate day 1 of a personalized plan tailored specifically to this user's image scan and fitness goal.
 
 PROFILE
 - Name: ${userContext.name}
@@ -286,7 +296,7 @@ PROFILE
 - Experience level: ${userContext.experienceLevel ?? "not specified"}
 - Training environment: ${userContext.trainingEnvironment ?? "not specified"}
 - Equipment available: ${userContext.equipmentAvailable?.join(", ") || "bodyweight only"}
-- Reported injuries/limitations: ${userContext.injuries?.length ? userContext.injuries.join(", ") : "None reported"}
+- Reported injuries/limitations: ${userContext.injuries?.length ? userContext.injuries.join(", ") : "None reported"}${visualNotes}
 
 TARGETS
 - Calorie target: ${userContext.calorieTarget} kcal
@@ -297,175 +307,126 @@ TODAY'S WORKOUT
 - Focus: ${userContext.workoutFocus}
 - Exercises: ${userContext.exercises.join(", ")}
 
-Write the coaching narrative and meal plan for this exact profile — do not generalize to a default user.`;
+Write the coaching narrative and meal plan for this exact profile and image analysis — do not generalize to a default user.`;
 
   const raw = await callLLM(systemPrompt, userPrompt, true);
   if (raw) {
     try {
       const clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-      return JSON.parse(clean) as AIPersonalizedPlan;
+      const parsed = JSON.parse(clean) as AIPersonalizedPlan;
+      if (parsed.meals && Array.isArray(parsed.meals) && parsed.meals.length >= 3) {
+        return {
+          ...parsed,
+          generatedBy: "GROQ / GEMINI AI",
+          source: "llm-groq",
+        };
+      }
     } catch (parseErr) {
-      console.warn("[AI Engine] Failed to parse LLM JSON. Activating sports-science engine.");
+      console.warn("[AI Engine] Failed to parse LLM JSON. Activating dynamic algorithmic food database engine.");
     }
   }
 
-  console.log("[AI Engine] Generating personalized plan with sports-science calibrated engine.");
+  console.log("[AI Engine] Generating personalized plan with dynamic algorithmic food database engine.");
 
-    const goalClean = userContext.goal.replace(/_/g, " ").toLowerCase();
-    const isLowBudget = userContext.budgetTier === "LOW";
-    const breakfastCal = Math.round(userContext.calorieTarget * 0.25);
-    const lunchCal = Math.round(userContext.calorieTarget * 0.35);
-    const snackCal = Math.round(userContext.calorieTarget * 0.15);
-    const dinnerCal = userContext.calorieTarget - (breakfastCal + lunchCal + snackCal);
+  const dynamicPlan = await nutritionPlanner.assembleDynamicPlan({
+    userId: "session_user",
+    profile: {
+      name: userContext.name,
+      age: userContext.age,
+      sex: (userContext.sex as any) || "MALE",
+      heightCm: 175,
+      weightKg: 75,
+    },
+    goal: {
+      type: (userContext.goal as any) || "GENERAL_FITNESS",
+      isPrimary: true,
+    },
+    training: {
+      experienceLevel: (userContext.experienceLevel as any) || "BEGINNER",
+      trainingEnvironment: (userContext.trainingEnvironment as any) || "GYM",
+      equipmentAvailable: userContext.equipmentAvailable || ["barbell", "dumbbell"],
+      workoutDaysPerWeek: 4,
+      sessionDurationMin: 45,
+    },
+    nutrition: {
+      dietaryPreference: userContext.dietaryPreference || "Omnivore",
+      allergies: userContext.allergies || [],
+      dislikedFoods: userContext.dislikedFoods || [],
+      cuisinePreferences: [],
+      budgetTier: (userContext.budgetTier as any) || "MEDIUM",
+      authoritativeCalorieTarget: userContext.calorieTarget,
+      authoritativeProteinTarget: userContext.proteinTarget,
+      authoritativeCarbTarget: Math.round((userContext.calorieTarget * 0.45) / 4),
+      authoritativeFatTarget: Math.round((userContext.calorieTarget * 0.25) / 9),
+      tdee: userContext.calorieTarget,
+      bmr: 1700,
+      hydrationTargetMl: 3000,
+    },
+    safety: {
+      isSafe: true,
+      conservativeMode: false,
+      injuries: userContext.injuries || [],
+      physicalLimitations: [],
+      reasons: [],
+      maxRPE: 8.5,
+      maxSetsPerExercise: 4,
+      prohibitedExercises: [],
+      prohibitedMovementPatterns: [],
+    },
+    historicalPerformance: {
+      recentSetsByExercise: {},
+      workoutsCompletedLast30Days: 0,
+    },
+    weightTrend: {
+      recentLogs: [],
+      observedRateKgPerWeek: 0,
+      predictedRateKgPerWeek: 0,
+      divergenceFlag: false,
+    },
+    planVersion: 1,
+  });
 
-    const breakfastProt = Math.round(userContext.proteinTarget * 0.25);
-    const lunchProt = Math.round(userContext.proteinTarget * 0.35);
-    const snackProt = Math.round(userContext.proteinTarget * 0.15);
-    const dinnerProt = userContext.proteinTarget - (breakfastProt + lunchProt + snackProt);
-
-    const meals = isLowBudget
-      ? [
-          {
-            mealSlot: "BREAKFAST",
-            recipeTitle: "Budget Scrambled Eggs & Cinnamon Banana Oats",
-            ingredients: [
-              "3 Whole Eggs + 2 Egg Whites",
-              "75g Rolled Oats",
-              "1 Sliced Banana",
-              "Pinch of Cinnamon & Sea Salt",
-            ],
-            instructions: [
-              "Cook rolled oats in boiling water or milk on stove until thick and creamy, topped with banana slices.",
-              "Whisk eggs and whites together and scramble gently on low heat with a light spray of cooking oil.",
-              "Season eggs with salt and black pepper and serve warm alongside oats.",
-            ],
-            youtubeSearch: "healthy budget eggs and oatmeal breakfast",
-            calories: breakfastCal,
-            proteinG: breakfastProt,
-          },
-          {
-            mealSlot: "LUNCH",
-            recipeTitle: "High-Protein Tuna & Chickpea Rice Power Bowl",
-            ingredients: [
-              "1 Can Tuna in Water (drained, 150g)",
-              "180g Cooked White or Brown Rice",
-              "120g Canned Chickpeas or Black Beans",
-              "1/2 Diced Onion & Squeeze of Lemon Juice",
-            ],
-            instructions: [
-              "Warm cooked rice in a bowl and mix in drained chickpeas or black beans for complex fiber and sustained energy.",
-              "Flake drained tuna over the rice and toss with diced red onion, lemon juice, salt, and pepper.",
-              "A delicious, complete protein source costing less than $2.00 to make.",
-            ],
-            youtubeSearch: "cheap high protein tuna rice bowl meal prep",
-            calories: lunchCal,
-            proteinG: lunchProt,
-          },
-          {
-            mealSlot: "SNACK",
-            recipeTitle: "Cottage Cheese / Curd with Natural Peanut Butter Toast",
-            ingredients: [
-              "160g Low-Fat Cottage Cheese or Plain Curd/Dahi",
-              "2 Slices Whole Wheat Bread",
-              "1.5 tbsp 100% Natural Peanut Butter",
-            ],
-            instructions: [
-              "Toast whole wheat bread until golden brown and spread with natural peanut butter.",
-              "Enjoy chilled cottage cheese or curd with a pinch of black pepper as a slow-digesting protein booster.",
-            ],
-            youtubeSearch: "cheap high protein fitness snack peanut butter",
-            calories: snackCal,
-            proteinG: snackProt,
-          },
-          {
-            mealSlot: "DINNER",
-            recipeTitle: "Savory Chicken Thighs & Lentils with Mashed Potatoes",
-            ingredients: [
-              "180g Skinned Chicken Thighs or Drumsticks",
-              "100g Cooked Red Lentils (Daal)",
-              "250g Boiled Potatoes (mashed with salt)",
-              "Steamed Frozen Mixed Vegetables (Peas, Corn, Carrots)",
-            ],
-            instructions: [
-              "Pan-sear or bake seasoned chicken thighs with paprika, garlic powder, turmeric, and black pepper until juicy.",
-              "Simmer lentils with garlic and cumin until thick and fragrant.",
-              "Boil potatoes, mash lightly with a splash of milk or olive oil, and serve with the chicken, lentils, and steamed veggies.",
-            ],
-            youtubeSearch: "cheap high protein chicken thigh meal prep",
-            calories: dinnerCal,
-            proteinG: dinnerProt,
-          },
-        ]
-      : [
-          {
-            mealSlot: "BREAKFAST",
-            recipeTitle: "High-Protein Power Oats & Egg Whites",
-            ingredients: ["80g Rolled Oats", "1 Scoop Whey Protein", "3 Egg Whites", "1 Sliced Banana", "Handful of Berries"],
-            instructions: [
-              "Cook rolled oats in water or milk until creamy and thick.",
-              "Remove from heat and vigorously stir in protein powder.",
-              "Scramble egg whites separately and top oats with fresh banana and berries.",
-            ],
-            youtubeSearch: "healthy high protein oatmeal egg white breakfast",
-            calories: breakfastCal,
-            proteinG: breakfastProt,
-          },
-          {
-            mealSlot: "LUNCH",
-            recipeTitle: "Mediterranean Grilled Chicken & Quinoa Bowl",
-            ingredients: ["180g Chicken Breast", "150g Cooked Quinoa", "Diced Cucumbers", "Cherry Tomatoes", "1 tbsp Extra Virgin Olive Oil"],
-            instructions: [
-              "Season chicken breast with oregano, garlic powder, salt, and black pepper; grill 6-7 mins per side.",
-              "Fluff warm quinoa into a bowl.",
-              "Toss with diced cucumbers, tomatoes, sliced chicken, and extra virgin olive oil.",
-            ],
-            youtubeSearch: "healthy chicken quinoa meal prep bowl",
-            calories: lunchCal,
-            proteinG: lunchProt,
-          },
-          {
-            mealSlot: "SNACK",
-            recipeTitle: "Greek Yogurt Parfait & Raw Almonds",
-            ingredients: ["200g Non-Fat Greek Yogurt", "25g Raw Almonds", "1 tbsp Pure Honey or Mixed Berries"],
-            instructions: [
-              "Spoon rich Greek yogurt into a bowl.",
-              "Top with whole raw almonds and a light drizzle of pure honey for clean sustained energy.",
-            ],
-            youtubeSearch: "high protein greek yogurt fitness snack",
-            calories: snackCal,
-            proteinG: snackProt,
-          },
-          {
-            mealSlot: "DINNER",
-            recipeTitle: "Lean Beef & Roasted Sweet Potato Power Plate",
-            ingredients: ["170g Lean Ground Beef (93/7) or Turkey", "200g Roasted Sweet Potato Cubes", "Steamed Broccoli & Green Beans"],
-            instructions: [
-              "Brown lean meat in a skillet with smoked paprika, garlic, and sea salt.",
-              "Roast sweet potato cubes in the oven at 200°C (400°F) for 25 minutes until tender.",
-              "Steam fresh broccoli florets and plate with the seasoned lean meat and sweet potato.",
-            ],
-            youtubeSearch: "lean beef sweet potato muscle building dinner",
-            calories: dinnerCal,
-            proteinG: dinnerProt,
-          },
-        ];
-
-    return {
-      coachNarrative: `This program is calibrated for your ${goalClean} objective, targeting ${userContext.calorieTarget} kcal and ${userContext.proteinTarget}g protein ${isLowBudget ? "with cost-effective, high-yield nutrition staples" : ""}. Focus on technical execution on today's ${userContext.workoutFocus} session and prioritize progressive overload with adequate recovery.`,
-      workoutFocus: userContext.workoutFocus,
-      workoutCues: [
-        "Control the eccentric (lowering) phase for 2-3 seconds to maximize mechanical tension.",
-        "Take full rest intervals between compound sets to maintain force output across all prescribed sets.",
-        "Stop 1-2 reps shy of failure on compound lifts to maintain clean form and joint longevity.",
-      ],
-      meals,
-    };
+  return {
+    coachNarrative: dynamicPlan.coachNarrative,
+    workoutFocus: userContext.workoutFocus || dynamicPlan.workoutFocus,
+    workoutCues: dynamicPlan.workoutCues,
+    meals: dynamicPlan.meals,
+    generatedBy: "ALGORITHMIC_FOOD_DATABASE",
+    source: "catalog-fallback",
+  };
 }
 
+
 /**
- * Real-time Conversational AI Coach
+ * Strips all raw markdown, HTML entities, and formatting characters so responses
+ * are delivered in clean, human-readable plain text without any symbols like *, #, ~, etc.
  */
-export async function askAICoach(
+export function cleanCoachText(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*{2,3}([^\*]+)\*{2,3}/g, "$1")
+    .replace(/\*([^\*\n]+)\*/g, "$1")
+    .replace(/_{2,3}([^_]+)_{2,3}/g, "$1")
+    .replace(/_([^\_\n]+)_/g, "$1")
+    .replace(/~~([^~]+)~~/g, "$1")
+    .replace(/\*+/g, "")
+    .replace(/^[\-\+]\s+/gm, "• ")
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export async function chatWithCoach(
+  userMessage: string,
   userContext: {
     name?: string;
     goal?: string;
@@ -474,9 +435,7 @@ export async function askAICoach(
     workoutFocus?: string;
     exercises?: string[];
     injuries?: string[];
-  },
-  userMessage: string,
-  history: { role: string; content: string }[] = []
+  }
 ): Promise<string> {
   const lower = userMessage.toLowerCase();
 
@@ -506,18 +465,42 @@ GUIDELINES:
 2. If they ask about exercise substitutions, suggest alternatives that work the same muscles with their available equipment.
 3. If they ask about food swaps, recommend ingredients that match their calories and protein.
 4. If they have short time (e.g. 30 min), tell them which of their exercises to prioritize and reduce rest.
-5. Keep your tone encouraging, concise, actionable, and friendly (2-4 sentences max). Never sound robotic.`;
+5. Keep your tone encouraging, concise, actionable, and friendly (2-4 sentences max). Never sound robotic.
+6. CRITICAL FORMATTING RULE: Reply in plain conversational English only. NEVER use markdown — no asterisks for bold or bullets (* or **), no hash symbols (#), no backticks, no code blocks, no special symbols.`;
 
   const reply = await callLLM(systemPrompt, userMessage);
-  if (reply) return reply;
+  if (reply) return cleanCoachText(reply);
 
   // Fallback response grounded in data if AI call fails
-    const goal = userContext.goal?.replace("_", " ").toLowerCase() ?? "fitness";
-    if (lower.includes("time") || lower.includes("short") || lower.includes("busy")) {
-      return `When short on time, prioritize the first 2 multi-joint compound movements in today's ${userContext.workoutFocus || "routine"}. Keep rest periods to 60 seconds to maintain maximum training intensity!`;
-    }
-    if (lower.includes("protein") || lower.includes("food") || lower.includes("eat") || lower.includes("substitute")) {
-      return `For your ${goal} target, stick to high-quality protein sources like chicken, eggs, Greek yogurt, lentils, or tofu to hit your ${userContext.proteinTarget || 140}g target today!`;
-    }
-    return `I'm here to guide your ${goal} journey. Your current plan is calibrated for steady progression. What would you like to tweak or focus on today?`;
+  const goal = userContext.goal?.replace("_", " ").toLowerCase() ?? "fitness";
+  if (lower.includes("time") || lower.includes("short") || lower.includes("busy")) {
+    return cleanCoachText(`When short on time, prioritize the first 2 multi-joint compound movements in today's ${userContext.workoutFocus || "routine"}. Keep rest periods to 60 seconds to maintain maximum training intensity!`);
+  }
+  if (lower.includes("protein") || lower.includes("food") || lower.includes("eat") || lower.includes("substitute") || lower.includes("nutrition")) {
+    return cleanCoachText(`For your ${goal} target, stick to high-quality protein sources like chicken, eggs, Greek yogurt, lentils, or tofu to hit your ${userContext.proteinTarget || 140}g target today!`);
+  }
+  if (lower.includes("workout") || lower.includes("exercise") || lower.includes("train") || lower.includes("gym")) {
+    return cleanCoachText(`Today's focus is ${userContext.workoutFocus || "targeted training"}. Warm up with 5 minutes of dynamic mobility, maintain controlled tempo on each rep, and stay consistent.`);
+  }
+  return cleanCoachText(`I am here to guide your ${goal} journey. Your current plan is calibrated for steady progression. What would you like to tweak, ask, or focus on today?`);
 }
+
+/**
+ * Backward compatibility alias for chatWithCoach
+ */
+export async function askAICoach(
+  userContext: {
+    name?: string;
+    goal?: string;
+    calorieTarget?: number;
+    proteinTarget?: number;
+    workoutFocus?: string;
+    exercises?: string[];
+    injuries?: string[];
+  },
+  userMessage: string,
+  _history: { role: string; content: string }[] = []
+): Promise<string> {
+  return chatWithCoach(userMessage, userContext);
+}
+

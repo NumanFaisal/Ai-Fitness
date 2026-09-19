@@ -12,6 +12,7 @@ interface OnboardingState {
   targetPhotoUri?: string;
   targetWeightKg?: number;
   targetPhysiqueAnalysis?: any;
+  userPhysiqueAnalysis?: any;
   bodyPhotos?: Record<string, string>;
   setProfile: (p: Partial<UserProfile>) => void;
   setFitnessProfile: (p: Partial<FitnessProfile>) => void;
@@ -19,6 +20,7 @@ interface OnboardingState {
   setTargetPhotoUri: (uri: string) => void;
   setTargetWeightKg: (w: number) => void;
   setTargetPhysiqueAnalysis: (a: any) => void;
+  setUserPhysiqueAnalysis: (a: any) => void;
   setBodyPhotos: (p: Record<string, string>) => void;
 }
 
@@ -31,6 +33,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [targetPhotoUri, setTargetPhotoUri] = useState<string | undefined>(undefined);
   const [targetWeightKg, setTargetWeightKg] = useState<number | undefined>(undefined);
   const [targetPhysiqueAnalysis, setTargetPhysiqueAnalysis] = useState<any>(undefined);
+  const [userPhysiqueAnalysis, setUserPhysiqueAnalysis] = useState<any>(undefined);
   const [bodyPhotos, setBodyPhotos] = useState<Record<string, string>>({});
 
   const value: OnboardingState = {
@@ -40,6 +43,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     targetPhotoUri,
     targetWeightKg,
     targetPhysiqueAnalysis,
+    userPhysiqueAnalysis,
     bodyPhotos,
     setProfile: (p) => setProfileState((prev) => ({ ...prev, ...p })),
     setFitnessProfile: (p) => setFitnessProfileState((prev) => ({ ...prev, ...p })),
@@ -47,6 +51,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setTargetPhotoUri,
     setTargetWeightKg,
     setTargetPhysiqueAnalysis,
+    setUserPhysiqueAnalysis,
     setBodyPhotos: (p) => setBodyPhotos((prev) => ({ ...prev, ...p })),
   };
 

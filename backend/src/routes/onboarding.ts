@@ -5,7 +5,7 @@ import { authMiddleware } from "../middleware/auth";
 import { prisma, getUserState, saveUserState } from "../db";
 import { calculateNutrition } from "../engines/nutritionEngine";
 import { generateWorkoutPlan } from "../engines/workoutEngine";
-import { analyzeTargetPhysique, calculatePhysiologicalTargetWeight } from "../services/aiVisionService";
+import { analyzeTargetPhysique, analyzeUserBodyPhoto, calculatePhysiologicalTargetWeight } from "../services/aiVisionService";
 
 export const onboardingRouter = Router();
 
@@ -20,6 +20,8 @@ const UserProfileSchema = z.object({
   targetWeightKg: z.number().min(30).max(300).optional(),
   targetPhotoUri: z.string().optional(),
   targetPhysique: z.any().optional(),
+  userPhysiqueAnalysis: z.any().optional(),
+  bodyPhotos: z.record(z.string()).optional(),
 });
 
 const FitnessProfileSchema = z.object({
@@ -100,6 +102,15 @@ onboardingRouter.post("/profile", async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const userState = getUserState(userId);
   userState.profile = parse.data;
+  if (parse.data.bodyPhotos) {
+    userState.bodyPhotos = parse.data.bodyPhotos;
+  }
+  if (parse.data.userPhysiqueAnalysis) {
+    (userState as any).userPhysiqueAnalysis = parse.data.userPhysiqueAnalysis;
+  }
+  if (parse.data.targetPhysique) {
+    (userState as any).targetPhysique = parse.data.targetPhysique;
+  }
   saveUserState(userId);
 
   try {
@@ -254,7 +265,40 @@ onboardingRouter.post("/analysis/target-physique", async (req: AuthRequest, res:
   return res.json(result);
 });
 
-// GET /profile - Return current user profile, fitness profile, and goals
+// POST /analysis/user-image - Analyze user's actual body photo(s) using Vision AI
+onboardingRouter.post("/analysis/user-image", async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const userState = getUserState(userId);
+
+  const heightCm = Number(req.body.heightCm) || userState.profile?.heightCm || 175;
+  const currentWeightKg = Number(req.body.currentWeightKg) || userState.profile?.weightKg || 75;
+  const sex = req.body.sex || userState.profile?.sex || "MALE";
+  const age = Number(req.body.age) || userState.profile?.age || 25;
+  const goal = req.body.goal || userState.goal?.type || "RECOMPOSITION";
+  const angle = req.body.angle || "FRONT";
+
+  const result = await analyzeUserBodyPhoto({
+    imageBase64: req.body.imageBase64,
+    imageUrl: req.body.imageUrl,
+    angle,
+    heightCm,
+    currentWeightKg,
+    sex,
+    age,
+    goal,
+  });
+
+  (userState as any).userPhysiqueAnalysis = result;
+  if (req.body.imageBase64 || req.body.imageUrl) {
+    if (!userState.bodyPhotos) userState.bodyPhotos = {};
+    userState.bodyPhotos[angle] = req.body.imageUrl || req.body.imageBase64;
+  }
+  saveUserState(userId);
+
+  return res.json(result);
+});
+
+// GET /profile - Return current user profile, fitness profile, goals, and image analyses
 onboardingRouter.get("/profile", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const userState = getUserState(userId);
@@ -264,6 +308,8 @@ onboardingRouter.get("/profile", (req: AuthRequest, res: Response) => {
     fitnessProfile: userState.fitnessProfile,
     goal: userState.goal,
     targetPhysique: (userState as any).targetPhysique,
+    userPhysiqueAnalysis: (userState as any).userPhysiqueAnalysis,
+    bodyPhotos: (userState as any).bodyPhotos,
   });
 });
 
@@ -352,6 +398,7 @@ onboardingRouter.get("/profile/target-body", (req: AuthRequest, res: Response) =
       estimatedWeeks,
       targetDate: fitness.targetDate || new Date(Date.now() + estimatedWeeks * 7 * 24 * 3600 * 1000).toISOString().split("T")[0],
     },
+    userPhysiqueAnalysis: (userState as any).userPhysiqueAnalysis || null,
     nutritionBlueprint: {
       calorieTarget: nutrition?.calorieTarget?.value || 2500,
       proteinTargetG: nutrition?.proteinTargetG?.value || 160,

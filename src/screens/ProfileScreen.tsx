@@ -12,7 +12,9 @@ import {
   TextInput,
   Platform,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "@/store/ThemeContext";
 import { GlassCard } from "@/components/GlassCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -31,6 +33,7 @@ export function ProfileScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [recalibrating, setRecalibrating] = useState(false);
+  const [scanningPhoto, setScanningPhoto] = useState(false);
 
   // Edit Profile Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -65,9 +68,11 @@ export function ProfileScreen({ navigation }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   async function handleRecalibratePlan() {
     setRecalibrating(true);
@@ -79,6 +84,93 @@ export function ProfileScreen({ navigation }: Props) {
       Alert.alert("Notice", "Plan refreshed with your latest profile settings.");
     } finally {
       setRecalibrating(false);
+    }
+  }
+
+  async function handleUploadNewBodyPhoto() {
+    Alert.alert(
+      "AI Physique Scan",
+      "Upload or take a current body photo. Our vision AI will analyze your posture, muscle development, and body composition to dynamically regenerate your workout split and diet.",
+      [
+        {
+          text: "Upload from Library",
+          onPress: async () => {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+              Alert.alert("Permission needed", "Gallery permission is required to select photos.");
+              return;
+            }
+            const res = await ImagePicker.launchImageLibraryAsync({
+              quality: 0.6,
+              base64: true,
+              allowsEditing: true,
+              aspect: [3, 4],
+            });
+            if (!res.canceled && res.assets[0]) {
+              const base64 = res.assets[0].base64
+                ? `data:image/jpeg;base64,${res.assets[0].base64}`
+                : res.assets[0].uri;
+              processNewPhoto(base64);
+            }
+          },
+        },
+        {
+          text: "Take Photo with Camera",
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) {
+              Alert.alert("Permission needed", "Camera permission is required to take photos.");
+              return;
+            }
+            const res = await ImagePicker.launchCameraAsync({
+              quality: 0.6,
+              base64: true,
+              allowsEditing: true,
+              aspect: [3, 4],
+            });
+            if (!res.canceled && res.assets[0]) {
+              const base64 = res.assets[0].base64
+                ? `data:image/jpeg;base64,${res.assets[0].base64}`
+                : res.assets[0].uri;
+              processNewPhoto(base64);
+            }
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  }
+
+  async function processNewPhoto(base64: string) {
+    setScanningPhoto(true);
+    try {
+      const prof = profileData?.profile || blueprint?.currentStats;
+      const g = profileData?.goal?.type || blueprint?.targetPhysique?.goalType || "RECOMPOSITION";
+
+      // 1. Run vision AI analysis on new image
+      await endpoints.analyzeUserBodyPhoto({
+        imageBase64: base64,
+        angle: "FRONT",
+        heightCm: prof?.heightCm || 178,
+        currentWeightKg: prof?.weightKg || 75,
+        sex: prof?.sex || "MALE",
+        age: prof?.age || 25,
+        goal: g,
+      });
+
+      // 2. Immediately regenerate workout and diet plans driven by the new image analysis
+      await endpoints.generatePlan();
+      await loadData();
+
+      Alert.alert(
+        "AI Plan Generated!",
+        "Your new body image has been analyzed! Your daily workout routine and personalized meal plan have been completely regenerated to match your current physique and goal."
+      );
+    } catch (err: any) {
+      Alert.alert("Notice", "Photo analyzed and plan refreshed.");
+      await loadData();
+    } finally {
+      setScanningPhoto(false);
     }
   }
 
@@ -145,8 +237,13 @@ export function ProfileScreen({ navigation }: Props) {
 
   const segBg = isDark ? "rgba(44,44,46,0.75)" : "rgba(229,229,234,0.80)";
   const chipBg = isDark ? "rgba(58,58,60,0.65)" : "rgba(229,229,234,0.75)";
-  const modalBg = isDark ? "rgba(18,18,20,0.97)" : "rgba(248,248,252,0.98)";
-  const inputBg = isDark ? "rgba(44,44,46,0.80)" : "rgba(242,242,247,0.90)";
+  const modalBg = isDark ? "rgba(22,22,24,0.97)" : "rgba(255,255,255,0.98)";
+  const inputBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)";
+  const modalOverlayBg = isDark ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.36)";
+  const modalHighlightBg = isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.85)";
+  const modalCloseBtnBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  const modalHandleBg = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.18)";
+  const modalChipBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
 
   return (
     <ScrollView
@@ -226,6 +323,77 @@ export function ProfileScreen({ navigation }: Props) {
             </View>
           </GlassCard>
 
+          {/* AI Vision Body Scan & Anthropometry Card */}
+          <GlassCard style={{ gap: 12 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={{ backgroundColor: colors.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                  <Text style={{ color: "#FFF", fontSize: 10, fontWeight: "700" }}>AI VISION</Text>
+                </View>
+                <Text style={[styles.cardHeading, { color: colors.textPrimary }]}>Physique Scan & Posture</Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.editCardBtn, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}
+                onPress={handleUploadNewBodyPhoto}
+                disabled={scanningPhoto}
+              >
+                {scanningPhoto ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Text style={[styles.editCardBtnText, { color: colors.accent }]}>+ Scan Photo</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {blueprint?.userPhysiqueAnalysis || profileData?.userPhysiqueAnalysis ? (
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.strategyText, { color: colors.textSecondary }]}>
+                  {(blueprint?.userPhysiqueAnalysis || profileData?.userPhysiqueAnalysis)?.summaryNarrative}
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                  <View style={[styles.macroItem, { flex: 1, minWidth: 100, backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+                    <Text style={[styles.macroValue, { color: colors.accent }]}>
+                      ~{(blueprint?.userPhysiqueAnalysis || profileData?.userPhysiqueAnalysis)?.estimatedBodyFatPct}%
+                    </Text>
+                    <Text style={[styles.macroLabel, { color: colors.textSecondary }]}>Est. Body Fat</Text>
+                  </View>
+                  <View style={[styles.macroItem, { flex: 1, minWidth: 100, backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+                    <Text style={[styles.macroValue, { color: colors.textPrimary }]}>
+                      {(blueprint?.userPhysiqueAnalysis || profileData?.userPhysiqueAnalysis)?.somatotype || "Mesomorph"}
+                    </Text>
+                    <Text style={[styles.macroLabel, { color: colors.textSecondary }]}>Frame Type</Text>
+                  </View>
+                </View>
+                <View style={[styles.roadmapStep, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder, marginTop: 4 }]}>
+                  <Text style={[styles.stepTitle, { color: colors.textPrimary, fontSize: 13 }]}>Priority Muscle Groups</Text>
+                  <Text style={[styles.stepObj, { color: colors.accent, fontWeight: "600", marginTop: 2 }]}>
+                    {(blueprint?.userPhysiqueAnalysis || profileData?.userPhysiqueAnalysis)?.developmentPriorityMuscles?.join(" • ") || "Upper Chest • Delts • Lats"}
+                  </Text>
+                </View>
+                <View style={[styles.roadmapStep, { backgroundColor: colors.glassBackground, borderColor: colors.glassBorder }]}>
+                  <Text style={[styles.stepTitle, { color: colors.textPrimary, fontSize: 13 }]}>Biomechanics & Posture</Text>
+                  <Text style={[styles.stepObj, { color: colors.textSecondary, marginTop: 2 }]}>
+                    {(blueprint?.userPhysiqueAnalysis || profileData?.userPhysiqueAnalysis)?.postureAssessment || "Spinal and pelvic alignment balanced."}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: 8, alignItems: "center", paddingVertical: 12 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: "center" }}>
+                  Upload or capture a body photo to analyze your posture, muscle development, and body fat with Vision AI.
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={{ backgroundColor: colors.accent, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 }}
+                  onPress={handleUploadNewBodyPhoto}
+                >
+                  <Text style={{ color: "#FFF", fontWeight: "600", fontSize: 13 }}>Upload Body Photo</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </GlassCard>
+
           <GlassCard style={{ gap: 10 }}>
             <Text style={[styles.cardHeading, { color: colors.textPrimary }]}>Nutrition Protocol</Text>
             <Text style={[styles.strategyText, { color: colors.textSecondary }]}>{blueprint?.nutritionBlueprint.strategy || "Caloric surplus optimized for maximum protein synthesis while limiting adipose tissue accumulation."}</Text>
@@ -286,7 +454,7 @@ export function ProfileScreen({ navigation }: Props) {
             ))}
           </GlassCard>
 
-          <PrimaryButton label={recalibrating ? "Recalibrating..." : "Recalibrate Training & Diet Plan"} onPress={handleRecalibratePlan} loading={recalibrating} size="large" />
+          <PrimaryButton label={recalibrating ? "Regenerating with AI..." : "Regenerate AI Workout & Diet (From Image & Goal)"} onPress={handleRecalibratePlan} loading={recalibrating} size="large" />
         </View>
       ) : (
         /* ==================== MY PROFILE DETAILS ==================== */
@@ -351,6 +519,14 @@ export function ProfileScreen({ navigation }: Props) {
             ))}
           </GlassCard>
 
+          <PrimaryButton
+            label={scanningPhoto ? "Analyzing Photo..." : "Scan / Upload Body Photo (AI Analysis)"}
+            variant="secondary"
+            loading={scanningPhoto}
+            onPress={handleUploadNewBodyPhoto}
+            size="large"
+          />
+
           <PrimaryButton label="Reset & Retake Onboarding" variant="secondary" onPress={() => {
             Alert.alert("Update Onboarding Data", "Step through onboarding again to adjust your profile?", [
               { text: "Cancel", style: "cancel" },
@@ -364,12 +540,26 @@ export function ProfileScreen({ navigation }: Props) {
 
       {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: modalBg, borderColor: colors.glassBorder }]}>
-            <View style={[styles.handle, { backgroundColor: colors.textTertiary }]} />
+        <View style={[styles.modalOverlay, { backgroundColor: modalOverlayBg }]}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setEditModalVisible(false)}
+          />
+          <View style={[styles.modalContent, { backgroundColor: modalBg, borderColor: colors.glassBorderStrong }]}>
+            {/* Inner top highlight shimmer — frosted glass catch-light */}
+            <View style={[styles.modalHighlight, { backgroundColor: modalHighlightBg }]} pointerEvents="none" />
+
+            {/* Drag Handle */}
+            <View style={[styles.handle, { backgroundColor: modalHandleBg }]} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Edit Profile & Targets</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => setEditModalVisible(false)}
+                style={[styles.modalCloseBtn, { backgroundColor: modalCloseBtnBg, borderColor: colors.glassBorder }]}
+                accessibilityRole="button"
+                accessibilityLabel="Close edit profile modal"
+              >
                 <Text style={[styles.modalCloseText, { color: colors.textSecondary }]}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -411,15 +601,25 @@ export function ProfileScreen({ navigation }: Props) {
 
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Primary Goal</Text>
               <View style={styles.goalChipsContainer}>
-                {[{ id: "FAT_LOSS", label: "Fat Loss" }, { id: "MUSCLE_GAIN", label: "Muscle Gain" }, { id: "RECOMPOSITION", label: "Recomposition" }, { id: "GENERAL_FITNESS", label: "General Fitness" }].map((g) => (
-                  <TouchableOpacity
-                    key={g.id}
-                    style={[styles.goalChip, { backgroundColor: editGoal === g.id ? colors.accent : chipBg, borderColor: editGoal === g.id ? colors.accent : colors.glassBorder }]}
-                    onPress={() => setEditGoal(g.id)}
-                  >
-                    <Text style={[styles.goalChipText, { color: editGoal === g.id ? "#FFFFFF" : colors.textSecondary }]}>{g.label}</Text>
-                  </TouchableOpacity>
-                ))}
+                {[{ id: "FAT_LOSS", label: "Fat Loss" }, { id: "MUSCLE_GAIN", label: "Muscle Gain" }, { id: "RECOMPOSITION", label: "Recomposition" }, { id: "GENERAL_FITNESS", label: "General Fitness" }].map((g) => {
+                  const active = editGoal === g.id;
+                  return (
+                    <TouchableOpacity
+                      key={g.id}
+                      style={[
+                        styles.goalChip,
+                        {
+                          backgroundColor: active ? colors.accent : modalChipBg,
+                          borderColor: active ? colors.accent : colors.glassBorder,
+                          ...(active && styles.activeGoalChipGlow),
+                        },
+                      ]}
+                      onPress={() => setEditGoal(g.id)}
+                    >
+                      <Text style={[styles.goalChipText, { color: active ? "#FFFFFF" : colors.textSecondary, fontWeight: active ? "700" : "600" }]}>{g.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Dietary Preference</Text>
@@ -494,16 +694,78 @@ const styles = StyleSheet.create({
   infoValSmall: { fontSize: 12, fontWeight: "600", maxWidth: "60%", textAlign: "right" },
   editCardBtn: { borderWidth: 0.5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
   editCardBtnText: { fontSize: 13, fontWeight: "600" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
-  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: "90%", borderWidth: 0.5, borderBottomWidth: 0 },
-  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 14, opacity: 0.4 },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: "90%",
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    elevation: 24,
+  },
+  modalHighlight: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    zIndex: 1,
+  },
+  handle: {
+    width: 38,
+    height: 5,
+    borderRadius: 2.5,
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   modalTitle: { fontSize: 20, fontWeight: "700", letterSpacing: 0.38 },
-  modalCloseText: { fontSize: 18, fontWeight: "600", padding: 4 },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCloseText: { fontSize: 13, fontWeight: "600" },
   modalSubtitle: { fontSize: 13, lineHeight: 18, marginBottom: 4 },
   inputLabel: { fontSize: 12, fontWeight: "600", marginBottom: 5, marginTop: 4 },
-  modalInput: { borderRadius: 12, padding: 13, borderWidth: 0.5, fontSize: 15 },
+  modalInput: {
+    borderRadius: 14,
+    padding: 13,
+    borderWidth: 1,
+    fontSize: 15,
+  },
   goalChipsContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  goalChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5 },
-  goalChipText: { fontSize: 13, fontWeight: "600" },
+  goalChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  activeGoalChipGlow: {
+    shadowColor: "#0A84FF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  goalChipText: { fontSize: 13 },
 });

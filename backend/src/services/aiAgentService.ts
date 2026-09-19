@@ -1,12 +1,35 @@
-import { getUserState, saveUserState, UserSessionState } from "../db";
+import { getUserState, saveUserState } from "../db";
 import { calculateHydration } from "../engines/hydrationEngine";
-import { calculateNutrition } from "../engines/nutritionEngine";
+import { chatWithCoach, cleanCoachText } from "./aiService";
+import { recipeService } from "./recipeService";
+import { exerciseService } from "./exerciseService";
+import { progressionService } from "./progressionService";
+import { tdeeRecalibrationService } from "./tdeeRecalibrationService";
+import { coachActionService, CoachActionResult } from "./coachActionService";
+import { personalizationContextBuilder } from "./personalizationContextBuilder";
 
 export interface AgentAction {
-  type: "LOG_WATER" | "UPDATE_CALORIES" | "UPDATE_PROTEIN" | "SWAP_MEAL" | "UPDATE_WEIGHT" | "ANALYZE_APP";
+  type: string;
   summary: string;
   badge: string;
   details?: any;
+}
+
+export interface CoachMessageRecord {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  actionsExecuted?: AgentAction[];
+  timestamp: string;
+}
+
+export interface CoachConversationRecord {
+  id: string;
+  userId: string;
+  title: string;
+  messages: CoachMessageRecord[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AgentResponse {
@@ -22,257 +45,396 @@ export interface AgentResponse {
     todayWorkoutFocus: string;
     goal: string;
   };
+  conversationId?: string;
   createdAt: string;
 }
 
 /**
- * Executes autonomous agent capabilities: inspects the entire app telemetry,
- * evaluates intent, mutates database state when requested, and provides conversational coaching.
+ * Retrieves or initializes the active coach conversation for a user.
  */
-export async function executeFitnessAgent(userId: string, userMessage: string): Promise<AgentResponse> {
+export function getOrCreateConversation(userId: string, conversationId?: string): CoachConversationRecord {
   const userState = getUserState(userId);
+  if (!(userState as any).coachConversations) {
+    (userState as any).coachConversations = [];
+  }
+  const convos: CoachConversationRecord[] = (userState as any).coachConversations;
+
+  if (conversationId) {
+    const existing = convos.find((c) => c.id === conversationId);
+    if (existing) return existing;
+  }
+
+  // Pick the most recent conversation or create a new one
+  if (convos.length > 0 && !conversationId) {
+    return convos[convos.length - 1];
+  }
+
+  const newConvo: CoachConversationRecord = {
+    id: conversationId || `conv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    userId,
+    title: "AI Fitness Coach Session",
+    messages: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  convos.push(newConvo);
+  saveUserState(userId);
+  return newConvo;
+}
+
+export function getConversationHistory(userId: string, conversationId: string): CoachConversationRecord | null {
+  const userState = getUserState(userId);
+  const convos: CoachConversationRecord[] = (userState as any).coachConversations || [];
+  return convos.find((c) => c.id === conversationId) || null;
+}
+
+/**
+ * Executes autonomous fitness coach capabilities with deep personalization context,
+ * intent analysis, deterministic safety/action pipeline, and conversational memory.
+ */
+export async function executeFitnessAgent(
+  userId: string,
+  userMessage: string,
+  conversationId?: string
+): Promise<AgentResponse> {
+  const userState = getUserState(userId);
+  const context = await personalizationContextBuilder.buildContext(userId);
+  const conversation = getOrCreateConversation(userId, conversationId);
+
   const lower = userMessage.toLowerCase().trim();
   const actions: AgentAction[] = [];
 
-  // Compute live vitals
-  const currentWeight = userState.profile?.weightKg ?? 75;
-  const currentCalories = userState.nutritionPlan?.calorieTarget?.value ?? 2500;
-  const currentProtein = userState.nutritionPlan?.proteinTargetG?.value ?? 150;
+  // Vitals from authoritative context
+  const currentWeight = context.profile.weightKg;
+  const currentCalories = context.nutrition.authoritativeCalorieTarget;
+  let activeCalories = currentCalories;
+  const currentProtein = context.nutrition.authoritativeProteinTarget || (context.nutrition as any).authoritativeProteinTargetG || 150;
   const hydration = calculateHydration({
     weightKg: currentWeight,
-    sessionDurationMin: userState.fitnessProfile?.sessionDurationMin ?? 45,
+    sessionDurationMin: context.training.sessionDurationMin,
   });
   let waterConsumed = userState.waterLogs.reduce((acc, l) => acc + l.amountMl, 0);
-  const todayWorkout = userState.workoutPlan?.days?.[0];
-  const workoutFocus = todayWorkout?.focus || "Full Body Strength";
-  const userGoal = userState.goal?.type?.replace(/_/g, " ") || "Recomposition";
+
+  const todayDayOfWeek = new Date().getDay();
+  const todayWorkout =
+    userState.workoutPlan?.days?.find((d: any) => d.dayOfWeek === todayDayOfWeek) ||
+    userState.workoutPlan?.days?.[0];
+  const workoutFocus = todayWorkout?.focus || "Active Training";
+  const userGoal = context.goal.type.replace(/_/g, " ");
 
   let replyText = "";
 
-  // 1. ACTION: Log Water (e.g. "I had 500ml water", "log 250ml", "drank 1 liter")
+  // Record user message into memory
+  conversation.messages.push({
+    id: `msg_${Date.now()}_user`,
+    role: "user",
+    content: userMessage,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Keep memory to last 20 messages
+  if (conversation.messages.length > 20) {
+    conversation.messages = conversation.messages.slice(-20);
+  }
+
+  // --- 0. INTENT: Calorie Target Adjustment (e.g. "Reduce my daily calorie target by 179 kcal", "cut 200 calories", "set calorie target to 2400", "decrease calories by 150") ---
+  const absCalMatch = lower.match(/(?:set|change|update|make)\s*(?:my\s*)?(?:daily\s*)?(?:calorie[s]?|cal|kcal|intake)?\s*(?:target\s*)?(?:to|at|is|=)\s*(\d{3,4})\s*(?:kcal|calories|cal)?/i);
+  const reduceCalMatch = lower.match(/(?:reduce|decrease|cut|lower|drop|subtract|minus)\s*(?:my\s*)?(?:daily\s*)?(?:calorie[s]?|cal|kcal|intake)?\s*(?:target\s*)?(?:by\s*)?(\d+)/i) ||
+                         lower.match(/-(?:reduce\s*)?(\d+)\s*(?:kcal|calories|cal)?/i);
+  const increaseCalMatch = lower.match(/(?:increase|add|raise|boost|bump|plus)\s*(?:my\s*)?(?:daily\s*)?(?:calorie[s]?|cal|kcal|intake)?\s*(?:target\s*)?(?:by\s*)?(\d+)/i) ||
+                           lower.match(/\+(?:increase\s*)?(\d+)\s*(?:kcal|calories|cal)?/i);
+
+  if (!replyText && (absCalMatch || reduceCalMatch || increaseCalMatch)) {
+    let deltaCalories: number | undefined = undefined;
+    let newCalorieTarget: number | undefined = undefined;
+
+    if (absCalMatch) {
+      newCalorieTarget = parseInt(absCalMatch[1], 10);
+    } else if (reduceCalMatch) {
+      deltaCalories = -parseInt(reduceCalMatch[1], 10);
+    } else if (increaseCalMatch) {
+      deltaCalories = parseInt(increaseCalMatch[1], 10);
+    }
+
+    const actionResult = await coachActionService.executeAction(userId, {
+      action: "ADJUST_CALORIE_TARGET",
+      parameters: {
+        deltaCalories,
+        newCalorieTarget,
+        reason: "User instruction via Coach Agent chat",
+      },
+    });
+
+    if (actionResult.success) {
+      actions.push({
+        type: "ADJUST_CALORIE_TARGET",
+        summary: actionResult.summary,
+        badge: actionResult.badge,
+        details: actionResult.details,
+      });
+
+      activeCalories = actionResult.details.newCalorieTarget;
+      const prevCals = actionResult.details.previousCalories;
+      const deltaVal = actionResult.details.delta;
+      const signStr = deltaVal < 0 ? `reduced by ${Math.abs(deltaVal)} kcal` : `increased by ${deltaVal} kcal`;
+
+      replyText = `Done! As your AI Coach, I have ${signStr} your daily calorie target from ${prevCals.toLocaleString()} kcal to ${activeCalories.toLocaleString()} kcal. I have automatically recalculated your meal portions, macro splits, and targets across your Today Dashboard, Nutrition Schedule, and Physique Blueprint.`;
+    } else {
+      replyText = actionResult.summary || "I was unable to adjust your calorie target. Please specify a value between 1,200 and 5,000 kcal.";
+    }
+  }
+
+  // --- 1. INTENT: Progression Query (e.g. "I completed 80kg x 12", "what should I do next?", "did 100kg for 8") ---
+  const perfMatch = lower.match(/(?:completed|did|lifted|benched|squatted|hit)\s*(\d+(?:\.\d+)?)\s*kg\s*(?:x|for|\*)\s*(\d+)/i);
+  if (perfMatch) {
+    const wt = parseFloat(perfMatch[1]);
+    const reps = parseInt(perfMatch[2], 10);
+    const rpeMatch = lower.match(/rpe\s*(\d+(?:\.\d+)?)/i);
+    const rpe = rpeMatch ? parseFloat(rpeMatch[1]) : 8.0;
+
+    // Log the exercise set
+    const actionResult = await coachActionService.executeAction(userId, {
+      action: "LOG_EXERCISE_SET",
+      parameters: {
+        exerciseSlug: todayWorkout?.exercises?.[0]?.exerciseSlug || "compound_exercise",
+        setNumber: 1,
+        reps,
+        weightKg: wt,
+        rpe,
+      },
+    });
+
+    if (actionResult.success) {
+      actions.push({
+        type: "LOG_EXERCISE_SET",
+        summary: actionResult.summary,
+        badge: actionResult.badge,
+        details: actionResult.details,
+      });
+    }
+
+    // Evaluate progression using ProgressionService
+    const progressionAdvice = progressionService.evaluateSetProgression(
+      todayWorkout?.exercises?.[0]?.exerciseSlug || "bench_press",
+      wt,
+      reps,
+      { min: 8, max: 12 },
+      rpe
+    );
+
+    replyText = `Great work on hitting ${wt}kg × ${reps} reps${rpe ? ` at RPE ${rpe}` : ""}! Based on your progressive overload targets: ${progressionAdvice.recommendation}. Target for next session: ${progressionAdvice.nextPrescription}. Keep logging every set to maintain clean double progression.`;
+  }
+
+  // --- 2. INTENT: Replace/Swap Exercise (e.g. "Can I replace today's squat?", "swap deadlift", "replace bench") ---
+  if (!replyText && (lower.includes("replace") || lower.includes("swap") || lower.includes("alternative")) && (lower.includes("squat") || lower.includes("bench") || lower.includes("deadlift") || lower.includes("press") || lower.includes("row") || lower.includes("curl") || lower.includes("exercise"))) {
+    let targetExSlug = "";
+    if (lower.includes("squat")) targetExSlug = "barbell_back_squat";
+    else if (lower.includes("bench")) targetExSlug = "barbell_bench_press";
+    else if (lower.includes("deadlift")) targetExSlug = "barbell_deadlift";
+    else if (lower.includes("row")) targetExSlug = "barbell_bent_over_row";
+    else if (lower.includes("overhead") || lower.includes("ohp")) targetExSlug = "overhead_press";
+    else {
+      targetExSlug = todayWorkout?.exercises?.[0]?.exerciseSlug || "barbell_back_squat";
+    }
+
+    const actionResult = await coachActionService.executeAction(userId, {
+      action: "REPLACE_EXERCISE",
+      parameters: {
+        currentExerciseSlug: targetExSlug,
+        reason: "User requested alternative",
+      },
+    });
+
+    if (actionResult.success) {
+      actions.push({
+        type: "REPLACE_EXERCISE",
+        summary: actionResult.summary,
+        badge: actionResult.badge,
+        details: actionResult.details,
+      });
+      replyText = `I've updated your workout! ${actionResult.summary}. The alternative matches your equipment (${context.training.equipmentAvailable.join(", ")}) and avoids your reported injury points.`;
+    } else {
+      replyText = actionResult.summary;
+    }
+  }
+
+  // --- 3. INTENT: Workout Adjustment for Fatigue (e.g. "I'm very tired today. Adjust my workout", "low energy", "fatigued") ---
+  if (!replyText && (lower.includes("tired") || lower.includes("fatigue") || lower.includes("exhausted") || lower.includes("sore") || lower.includes("low energy"))) {
+    const actionResult = await coachActionService.executeAction(userId, {
+      action: "ADJUST_TODAYS_WORKOUT",
+      parameters: {
+        fatigueLevel: "HIGH",
+        targetRPECap: 7.0,
+      },
+    });
+
+    if (actionResult.success) {
+      actions.push({
+        type: "ADJUST_TODAYS_WORKOUT",
+        summary: actionResult.summary,
+        badge: actionResult.badge,
+        details: actionResult.details,
+      });
+      replyText = `Understood! I've dynamically adapted today's session to match your recovery state. Volume has been reduced (sets capped to 2, target RPE capped at 7.0) to stimulate muscle protein synthesis without overwhelming systemic CNS recovery. Focus on pristine form and rest up!`;
+    }
+  }
+
+  // --- 4. INTENT: Log Water (e.g. "I drank 500ml water", "log 250ml", "had 1 liter") ---
   const waterMatch = lower.match(/(?:drank|log|had|consumed|add)\s*(\d+(?:\.\d+)?)\s*(ml|l|liter|liters|glass|glasses)?/i);
-  if (waterMatch || lower.includes("water")) {
-    let ml = 0;
+  if (!replyText && (waterMatch || (lower.includes("water") && (lower.includes("drank") || lower.includes("log") || lower.includes("glass"))))) {
+    let ml = 250;
     if (waterMatch) {
       const val = parseFloat(waterMatch[1]);
       const unit = (waterMatch[2] || "ml").toLowerCase();
-      if (unit.startsWith("l")) {
-        ml = Math.round(val * 1000);
-      } else if (unit.startsWith("glass")) {
-        ml = Math.round(val * 250);
-      } else {
-        ml = Math.round(val);
-      }
-    } else if (lower.includes("glass")) {
-      ml = 250;
+      if (unit.startsWith("l")) ml = Math.round(val * 1000);
+      else if (unit.startsWith("glass")) ml = Math.round(val * 250);
+      else ml = Math.round(val);
     } else if (lower.includes("bottle")) {
       ml = 500;
     }
 
-    if (ml > 0 && ml <= 3000) {
-      userState.waterLogs.push({ amountMl: ml, loggedAt: new Date() });
-      saveUserState(userId);
-      waterConsumed += ml;
-      const pct = Math.round((waterConsumed / hydration.targetMl) * 100);
-
-      actions.push({
-        type: "LOG_WATER",
-        summary: `Logged +${ml}ml water (${waterConsumed}ml / ${hydration.targetMl}ml total)`,
-        badge: `💧 +${ml}ml Water Logged`,
-        details: { amountMl: ml, total: waterConsumed, target: hydration.targetMl },
-      });
-
-      replyText = `Logged ${ml}ml of water into your tracker! You are now at ${waterConsumed.toLocaleString()}ml of your ${hydration.targetMl.toLocaleString()}ml daily target (${pct}% achieved). Staying hydrated maintains muscle power and metabolic rate.`;
-    }
-  }
-
-  // 2. ACTION: Update Calories (e.g. "drop calories by 200", "increase calories to 2600", "reduce calories by 150")
-  if (!replyText && (lower.includes("calorie") || lower.includes("kcal") || lower.includes("calories"))) {
-    const dropMatch = lower.match(/(?:drop|reduce|cut|decrease|lower)\s*(?:my\s*)?calories?\s*(?:by\s*)?(\d+)/i);
-    const increaseMatch = lower.match(/(?:increase|boost|bump|raise|add)\s*(?:my\s*)?calories?\s*(?:by\s*)?(\d+)/i);
-    const setMatch = lower.match(/(?:set|change|update)\s*(?:my\s*)?calories?\s*(?:to\s*)?(\d+)/i);
-
-    let newTarget = currentCalories;
-    if (dropMatch) {
-      const delta = parseInt(dropMatch[1], 10);
-      newTarget = Math.max(1200, currentCalories - delta);
-    } else if (increaseMatch) {
-      const delta = parseInt(increaseMatch[1], 10);
-      newTarget = Math.min(5000, currentCalories + delta);
-    } else if (setMatch) {
-      newTarget = parseInt(setMatch[1], 10);
-    }
-
-    if (newTarget !== currentCalories && userState.nutritionPlan) {
-      userState.nutritionPlan.calorieTarget = { value: newTarget, provenance: "CALCULATED" };
-      saveUserState(userId);
-
-      actions.push({
-        type: "UPDATE_CALORIES",
-        summary: `Caloric target updated from ${currentCalories} to ${newTarget} kcal`,
-        badge: `⚡ Target Updated: ${newTarget} kcal`,
-        details: { oldTarget: currentCalories, newTarget },
-      });
-
-      replyText = `I have updated your daily caloric target to ${newTarget} kcal (previously ${currentCalories} kcal). Your energy expenditure and meal portions have been recalibrated accordingly.`;
-    }
-  }
-
-  // 3. ACTION: Update Protein (e.g. "increase protein to 160g", "bump protein by 15g")
-  if (!replyText && (lower.includes("protein") && (lower.includes("increase") || lower.includes("set") || lower.includes("change") || lower.includes("bump") || lower.includes("target")))) {
-    const protMatch = lower.match(/(?:to|by)\s*(\d+)\s*g?/i);
-    if (protMatch && userState.nutritionPlan) {
-      const val = parseInt(protMatch[1], 10);
-      const newProt = lower.includes("by") ? currentProtein + val : val;
-      if (newProt >= 60 && newProt <= 350) {
-        userState.nutritionPlan.proteinTargetG = { value: newProt, provenance: "CALCULATED" };
-        saveUserState(userId);
-
-        actions.push({
-          type: "UPDATE_PROTEIN",
-          summary: `Protein target updated to ${newProt}g daily`,
-          badge: `🥩 Protein Target: ${newProt}g`,
-          details: { newProtein: newProt },
-        });
-
-        replyText = `Done! Your daily protein target is now set to ${newProt}g. Prioritize high-bioavailability sources like chicken breast, whey, eggs, Greek yogurt, or tofu across your 4 scheduled meals.`;
-      }
-    }
-  }
-
-  // 4. ACTION: Swap Meal (e.g. "swap my lunch", "change breakfast", "change dinner to salmon")
-  if (!replyText && (lower.includes("swap") || lower.includes("replace") || lower.includes("change")) && (lower.includes("breakfast") || lower.includes("lunch") || lower.includes("dinner") || lower.includes("snack") || lower.includes("meal"))) {
-    let slot = "LUNCH";
-    if (lower.includes("breakfast")) slot = "BREAKFAST";
-    else if (lower.includes("dinner")) slot = "DINNER";
-    else if (lower.includes("snack")) slot = "SNACK";
-
-    const aiMeals = (userState as any).aiMeals || [];
-    const mealIndex = aiMeals.findIndex((m: any) => m.mealSlot.toUpperCase() === slot);
-
-    const replacementRecipes: Record<string, { title: string; ingredients: string[]; instructions: string[] }> = {
-      BREAKFAST: {
-        title: "Avocado Egg White Toast & Greek Yogurt",
-        ingredients: ["2 Slices Whole Grain Toast", "150g Egg Whites scrambled", "1/2 Sliced Avocado", "100g Non-Fat Greek Yogurt"],
-        instructions: ["Toast whole grain bread.", "Scramble egg whites with a pinch of sea salt and cracked pepper.", "Top toast with sliced avocado and egg whites. Serve with fresh Greek yogurt."],
-      },
-      LUNCH: {
-        title: "Teriyaki Grilled Salmon & Jasmine Rice Bowl",
-        ingredients: ["170g Fresh Salmon Fillet", "150g Steamed Jasmine Rice", "Steamed Broccoli Florets", "1 tbsp Low-Sodium Teriyaki Glaze"],
-        instructions: ["Pan-sear salmon skin-side down for 4 minutes, flip and cook 3 minutes.", "Fluff steamed rice into bowl and add steamed broccoli.", "Drizzle teriyaki glaze over salmon and serve."],
-      },
-      SNACK: {
-        title: "Cottage Cheese with Crushed Walnuts & Honey",
-        ingredients: ["200g Low-Fat Cottage Cheese", "20g Raw Walnuts", "1 tsp Pure Honey"],
-        instructions: ["Scoop cold cottage cheese into bowl.", "Top with crushed raw walnuts and a light honey drizzle."],
-      },
-      DINNER: {
-        title: "Herb Crusted Turkey Breast & Roasted Medley",
-        ingredients: ["180g Lean Ground Turkey or Cutlets", "180g Sweet Potato Wedges", "Roasted Asparagus Spears", "1 tbsp Olive Oil"],
-        instructions: ["Season turkey with rosemary, thyme, garlic powder, and paprika; sear until cooked through.", "Roast sweet potato and asparagus at 200°C for 20 minutes.", "Plate together for a clean muscle-recovery meal."],
-      },
-    };
-
-    const newRecipe = replacementRecipes[slot] || replacementRecipes.LUNCH;
-
-    if (mealIndex >= 0) {
-      aiMeals[mealIndex].recipeTitle = newRecipe.title;
-      aiMeals[mealIndex].ingredients = newRecipe.ingredients;
-      aiMeals[mealIndex].instructions = newRecipe.instructions;
-    } else {
-      aiMeals.push({
-        mealSlot: slot,
-        recipeTitle: newRecipe.title,
-        ingredients: newRecipe.ingredients,
-        instructions: newRecipe.instructions,
-        calories: Math.round(currentCalories / 4),
-        proteinG: Math.round(currentProtein / 4),
-      });
-    }
-
-    (userState as any).aiMeals = aiMeals;
-    saveUserState(userId);
-
-    actions.push({
-      type: "SWAP_MEAL",
-      summary: `Replaced ${slot} with ${newRecipe.title}`,
-      badge: `🥗 ${slot} Replaced: ${newRecipe.title}`,
-      details: { slot, recipe: newRecipe.title },
+    const actionResult = await coachActionService.executeAction(userId, {
+      action: "LOG_WATER",
+      parameters: { amountMl: ml },
     });
 
-    replyText = `I have swapped your ${slot.toLowerCase()}! Your new dish is the **${newRecipe.title}**, carefully matched to your macro budget. Check your Nutrition tab to see the updated ingredients and prep instructions.`;
+    if (actionResult.success) {
+      waterConsumed += ml;
+      actions.push({
+        type: "LOG_WATER",
+        summary: actionResult.summary,
+        badge: actionResult.badge,
+        details: actionResult.details,
+      });
+      const pct = Math.round((waterConsumed / hydration.targetMl) * 100);
+      replyText = `Logged ${ml}ml of water into your tracker! You are now at ${waterConsumed.toLocaleString()}ml of your ${hydration.targetMl.toLocaleString()}ml daily target (${pct}% achieved). Staying hydrated maintains intracellular osmotic pressure and exercise capacity.`;
+    }
   }
 
-  // 5. ACTION: Update Weight (e.g. "I weigh 78kg now", "update weight to 80 kg", "my weight is 76kg")
+  // --- 5. INTENT: Log Body Weight (e.g. "I weigh 78kg now", "update weight to 76.5 kg") ---
   const weightMatch = lower.match(/(?:weigh|weight)\s*(?:is|now|to|at)?\s*(\d+(?:\.\d+)?)\s*kg/i);
   if (!replyText && weightMatch) {
     const newWt = parseFloat(weightMatch[1]);
-    if (newWt >= 35 && newWt <= 250) {
-      if (!userState.profile) {
-        userState.profile = { name: "Athlete", age: 25, sex: "MALE", heightCm: 175, weightKg: newWt };
-      } else {
-        userState.profile.weightKg = newWt;
-      }
+    const actionResult = await coachActionService.executeAction(userId, {
+      action: "LOG_WEIGHT",
+      parameters: { weightKg: newWt },
+    });
 
-      // Recalibrate nutrition based on updated weight
-      if (userState.fitnessProfile && userState.goal) {
-        const recalced = calculateNutrition({
-          weightKg: newWt,
-          heightCm: userState.profile.heightCm,
-          age: userState.profile.age,
-          sex: userState.profile.sex,
-          workoutDaysPerWeek: userState.fitnessProfile.workoutDaysPerWeek,
-          goal: userState.goal.type,
-          budgetTier: userState.fitnessProfile.budgetTier,
-        });
-        userState.nutritionPlan = recalced;
-      }
-
-      saveUserState(userId);
-
+    if (actionResult.success) {
       actions.push({
-        type: "UPDATE_WEIGHT",
-        summary: `Body weight updated to ${newWt.toFixed(1)} kg. BMR and target macros recalibrated.`,
-        badge: `⚖️ Weight Updated: ${newWt} kg`,
-        details: { newWeight: newWt },
+        type: "LOG_WEIGHT",
+        summary: actionResult.summary,
+        badge: actionResult.badge,
+        details: actionResult.details,
       });
-
-      replyText = `Registered your updated weight of ${newWt} kg! Your BMR, daily energy expenditure, and baseline macro targets have been automatically recalibrated in the database.`;
+      replyText = `Registered your weight of ${newWt.toFixed(1)} kg! ${actionResult.summary}`;
     }
   }
 
-  // 6. ACTION: App Telemetry Analysis (e.g. "analyze my progress", "give me a status update", "how am I doing")
-  if (!replyText) {
-    const hydrationPct = Math.round((waterConsumed / hydration.targetMl) * 100);
-    const exerciseCount = todayWorkout?.exercises?.length ?? 0;
-
-    replyText = `**Whole-App Telemetry Analysis for ${userState.profile?.name || "Athlete"}:**\n` +
-      `• **Goal**: ${userGoal}\n` +
-      `• **Daily Nutrition**: ${currentCalories} kcal | ${currentProtein}g Protein\n` +
-      `• **Hydration**: ${waterConsumed.toLocaleString()} / ${hydration.targetMl.toLocaleString()} ml (${hydrationPct}% completed)\n` +
-      `• **Today's Training**: ${workoutFocus} (${exerciseCount} exercises scheduled)\n\n` +
-      `You can tell me to make live adjustments anytime — for example: *"Drop calories by 150"*, *"I just drank 500ml water"*, or *"Swap my lunch"*. What would you like to optimize?`;
-
-    actions.push({
-      type: "ANALYZE_APP",
-      summary: "Evaluated whole-app telemetry across nutrition, training split, and hydration.",
-      badge: "📊 App Telemetry Analyzed",
-    });
+  // --- 6. INTENT: Weight Plateau / Calorie Question (e.g. "My weight hasn't changed for two weeks", "Why did my calories change?") ---
+  if (!replyText && (lower.includes("weight hasn't changed") || lower.includes("plateau") || lower.includes("not losing weight") || lower.includes("stuck") || lower.includes("why did my calories change"))) {
+    const recalResult = tdeeRecalibrationService.evaluateRecalibration(userId);
+    if (recalResult.recalibrated) {
+      replyText = `Based on your recent weight logs, your rolling 7-day weight trend (${recalResult.observedRateKgPerWeek.toFixed(2)} kg/week) diverged from the expected rate (${recalResult.expectedRateKgPerWeek.toFixed(2)} kg/week). Your daily target was adjusted from ${recalResult.previousCalorieTarget} kcal to ${recalResult.newCalorieTarget} kcal to break through the plateau safely while protecting muscle mass.`;
+    } else {
+      replyText = `I analyzed your rolling weight trend: your rate of change is currently ${recalResult.observedRateKgPerWeek.toFixed(2)} kg/week versus an expected ${recalResult.expectedRateKgPerWeek.toFixed(2)} kg/week. Day-to-day weight fluctuates by 1-2kg due to water retention, glycogen storage, and sodium. We evaluate trends over a minimum 7-day rolling window before adjusting calorie targets. Stick to your ${currentCalories} kcal plan!`;
+    }
   }
+
+  // --- 7. INTENT: Meal Advice / Swap / Dietary Preference (e.g. "What should I eat for dinner?", "I don't have chicken", "Give me a vegetarian alternative") ---
+  if (!replyText && (lower.includes("dinner") || lower.includes("lunch") || lower.includes("breakfast") || lower.includes("eat") || lower.includes("chicken") || lower.includes("vegetarian"))) {
+    let slot: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK" = "DINNER";
+    if (lower.includes("breakfast")) slot = "BREAKFAST";
+    else if (lower.includes("lunch")) slot = "LUNCH";
+    else if (lower.includes("snack")) slot = "SNACK";
+
+    let overrideDiet: string | undefined = undefined;
+    if (lower.includes("vegetarian")) overrideDiet = "Vegetarian";
+    else if (lower.includes("vegan")) overrideDiet = "Vegan";
+
+    if (lower.includes("swap") || lower.includes("replace") || lower.includes("don't have") || lower.includes("alternative")) {
+      const actionResult = await coachActionService.executeAction(userId, {
+        action: "REPLACE_MEAL",
+        parameters: {
+          mealSlot: slot,
+          dietaryPreferenceOverride: overrideDiet,
+          reason: lower.includes("chicken") ? "No chicken available" : "User requested alternative",
+        },
+      });
+
+      if (actionResult.success) {
+        actions.push({
+          type: "REPLACE_MEAL",
+          summary: actionResult.summary,
+          badge: actionResult.badge,
+          details: actionResult.details,
+        });
+        replyText = `I've updated your ${slot.toLowerCase()}! ${actionResult.summary}. All ingredients are calibrated to your macro targets and respect your allergy and dietary constraints.`;
+      }
+    } else {
+      // Query current planned meal
+      const plannedMeals = (userState as any).aiMeals || [];
+      const currentMeal = plannedMeals.find((m: any) => m.mealSlot === slot);
+      if (currentMeal) {
+        replyText = `For ${slot.toLowerCase()}, your personalized plan prescribes: **${currentMeal.recipeTitle}** (${currentMeal.calories} kcal, ${currentMeal.proteinG}g protein).\n\nIngredients:\n${(currentMeal.ingredients || []).map((i: string) => `• ${i}`).join("\n")}`;
+      } else {
+        replyText = `For ${slot.toLowerCase()}, aim for approximately ${Math.round(currentCalories / 4)} kcal and ${Math.round(currentProtein / 4)}g protein with lean proteins, fibrous veggies, and complex carbohydrates.`;
+      }
+    }
+  }
+
+  // --- 8. INTENT: "What should I do today?" / Today's Training Split ---
+  if (!replyText && (lower.includes("what should i do today") || lower.includes("today's workout") || lower.includes("todays workout") || lower.includes("what workout"))) {
+    if (todayWorkout) {
+      const exList = todayWorkout.exercises.map((e: any) => `• ${e.exerciseName || e.name} (${e.sets} sets × ${e.repRangeLow}-${e.repRangeHigh} reps)`).join("\n");
+      replyText = `Today's scheduled focus is **${todayWorkout.focus}**!\n\nHere is your routine:\n${exList}\n\nWarm up for 5-10 minutes, hit your target RPEs, and log your weights to track progressive overload!`;
+    } else {
+      replyText = `Today is scheduled as an active recovery day. Focus on hydration (target: ${hydration.targetMl}ml), light mobility, and hitting your daily protein target of ${currentProtein}g.`;
+    }
+  }
+
+  // --- 9. Conversational Fallback via LLM with Full Context Snapshot ---
+  if (!replyText) {
+    const recentMessages = conversation.messages.slice(-6).map((m) => `${m.role}: ${m.content}`).join("\n");
+    const coachAiReply = await chatWithCoach(userMessage, {
+      name: context.profile.name,
+      goal: userGoal,
+      calorieTarget: currentCalories,
+      proteinTarget: currentProtein,
+      workoutFocus: workoutFocus,
+      exercises: todayWorkout?.exercises?.map((e: any) => e.exerciseName || e.name || e) || [],
+      injuries: context.safety.injuries,
+    });
+    replyText = cleanCoachText(coachAiReply);
+  }
+
+  const cleanedReply = cleanCoachText(replyText);
+
+  // Record assistant response into memory
+  conversation.messages.push({
+    id: `msg_${Date.now()}_assistant`,
+    role: "assistant",
+    content: cleanedReply,
+    actionsExecuted: actions,
+    timestamp: new Date().toISOString(),
+  });
+  conversation.updatedAt = new Date().toISOString();
+  saveUserState(userId);
 
   return {
     role: "assistant",
-    content: replyText,
+    content: cleanedReply,
     actionsExecuted: actions,
     appVitals: {
       weightKg: currentWeight,
-      calorieTarget: currentCalories,
+      calorieTarget: activeCalories,
       proteinTarget: currentProtein,
       waterConsumedMl: waterConsumed,
       waterTargetMl: hydration.targetMl,
       todayWorkoutFocus: workoutFocus,
       goal: userGoal,
     },
+    conversationId: conversation.id,
     createdAt: new Date().toISOString(),
   };
 }

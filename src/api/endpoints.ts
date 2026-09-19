@@ -51,6 +51,12 @@ export const endpoints = {
   sendCoachMessage: (message: string) =>
     apiClient.post<AIChatMessage>("/ai/chat", { message }),
 
+  getCoachVitals: () =>
+    apiClient.get<AIChatMessage["appVitals"]>("/ai/vitals"),
+
+  getCoachHistory: () =>
+    apiClient.get<{ id: string; messages: any[] }>("/ai/history"),
+
   uploadPhoto: (imageBase64: string, folder?: string) =>
     apiClient.post<{ url: string; secureUrl: string; publicId: string; message: string }>("/media/upload", {
       imageBase64,
@@ -76,6 +82,18 @@ export const endpoints = {
       description: string;
       confidenceScore: number;
     }>("/analysis/target-physique", data),
+
+  analyzeUserBodyPhoto: (data: {
+    imageBase64?: string;
+    imageUrl?: string;
+    angle?: string;
+    heightCm?: number;
+    currentWeightKg?: number;
+    sex?: string;
+    age?: number;
+    goal?: string;
+  }) =>
+    apiClient.post<import("@/types/models").UserPhysiqueAnalysis>("/analysis/user-image", data),
 
   getProfile: () => apiClient.get<import("@/types/models").FullProfileData>("/profile"),
 
