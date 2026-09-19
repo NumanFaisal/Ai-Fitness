@@ -46,71 +46,54 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Setup Keystore (Decodes secret if present, or generates standalone release keystore)
-      - name: Setup Keystore
-        id: keystore
+      # 3. Install Android NDK 27.1.12297006 (matches Expo SDK 52/57 requirements)
+      - name: Install Android NDK
         run: |
-          KEYSTORE_DIR="android/app"
-          KEYSTORE_PATH="$KEYSTORE_DIR/release.keystore"
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.1.12297006" || true
+
+      # 4. Decode or Generate Keystore File
+      - name: Decode Keystore File
+        run: |
           STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}"
-          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'aifitnesskey' }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'ai-fitness-key' }}"
           KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}"
 
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "Decoding ANDROID_KEYSTORE_BASE64 secret into $KEYSTORE_PATH..."
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+            echo "Decoding ANDROID_KEYSTORE_BASE64 secret into android/app/release.keystore..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
           else
-            echo "ANDROID_KEYSTORE_BASE64 secret not found. Generating a standalone release keystore for CI..."
-            keytool -genkeypair -v -storetype PKCS12 -keystore "$KEYSTORE_PATH" \
+            echo "ANDROID_KEYSTORE_BASE64 secret not set. Generating standalone release keystore..."
+            keytool -genkeypair -v -storetype PKCS12 -keystore android/app/release.keystore \
               -alias "$KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass "$STORE_PASS" -keypass "$KEY_PASS" \
-              -dname "CN=AiFitness, OU=Engineering, O=AiFitness, L=SanFrancisco, S=CA, C=US"
+              -dname "CN=AiFitness, OU=Engineering, O=AiFitness, L=City, S=State, C=US"
           fi
 
-          if [ ! -f "$KEYSTORE_PATH" ]; then
+          if [ ! -f android/app/release.keystore ]; then
             echo "ERROR: Failed to prepare release.keystore!"
             exit 1
           fi
-          echo "Keystore ready at $KEYSTORE_PATH"
+          echo "Keystore verified at android/app/release.keystore"
 
-      # 4. Configure Release Signing in android/app/build.gradle
+      # 5. Configure Release Signing in android/app/build.gradle
       - name: Configure Gradle Signing
-        run: |
-          STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}"
-          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'aifitnesskey' }}"
-          KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}"
-
-          node -e "
-            const fs = require('fs');
-            const file = 'android/app/build.gradle';
-            let content = fs.readFileSync(file, 'utf8');
-
-            const releaseSigning = \`        release {
-                storeFile file('release.keystore')
-                storePassword '\${'$'}{STORE_PASS}'
-                keyAlias '\${'$'}{KEY_ALIAS}'
-                keyPassword '\${'$'}{KEY_PASS}'
-            }\`.replace(\\\"\${'$'}{STORE_PASS}\\\", '$STORE_PASS').replace(\\\"\${'$'}{KEY_ALIAS}\\\", '$KEY_ALIAS').replace(\\\"\${'$'}{KEY_PASS}\\\", '$KEY_PASS');
-
-            if (!content.includes('signingConfigs.release')) {
-              content = content.replace(/signingConfigs\s*\{/, 'signingConfigs {\n' + releaseSigning);
-              content = content.replace(/buildTypes\s*\{\s*debug\s*\{[^\}]+\}\s*release\s*\{/, function(match) {
-                return match.replace(/signingConfig\s+signingConfigs\.\w+/, 'signingConfig signingConfigs.release');
-              });
-              // Ensure release buildType explicitly uses signingConfigs.release
-              content = content.replace(/(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?signingConfig\s+)signingConfigs\.\w+/, '\$1signingConfigs.release');
-              fs.writeFileSync(file, content, 'utf8');
-              console.log('Successfully configured release signingConfig in android/app/build.gradle');
-            }
-          "
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'ai-fitness-key' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}
+        run: node scripts/configure-signing.js
 
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
 
-      # 5. Build signed Android Release APK
+      # 6. Build signed Android Release APK
       - name: Build Android Release APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"
+          ORG_GRADLE_PROJECT_MYAPP_RELEASE_STORE_FILE: "release.keystore"
+          ORG_GRADLE_PROJECT_MYAPP_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}
+          ORG_GRADLE_PROJECT_MYAPP_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'ai-fitness-key' }}
+          ORG_GRADLE_PROJECT_MYAPP_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}
           EXPO_PUBLIC_API_BASE_URL: "https://ai-fitness-56uz.onrender.com"
           EXPO_PUBLIC_API_URL: "https://ai-fitness-56uz.onrender.com"
           API_BASE_URL: "https://ai-fitness-56uz.onrender.com"
@@ -118,12 +101,12 @@ jobs:
           cd android
           ./gradlew assembleRelease --no-daemon --no-build-cache --stacktrace -x lint -x test
 
-      # 6. Verify and Rename Release APK
+      # 7. Rename and Verify APK Signature & Release Flag
       - name: Rename and Verify APK Signature & Release Flag
         run: |
           APK_DIR="android/app/build/outputs/apk/release"
           STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}"
-          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'aifitnesskey' }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'ai-fitness-key' }}"
           KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}"
           TARGET_APK="$APK_DIR/AI-Fitness-release.apk"
 
@@ -141,7 +124,7 @@ jobs:
           fi
 
           if [ ! -f "$TARGET_APK" ]; then
-            echo "ERROR: Release APK was not found at $TARGET_APK"
+            echo "ERROR: Target APK not found at $TARGET_APK"
             ls -la "$APK_DIR/" || true
             exit 1
           fi
@@ -173,7 +156,7 @@ jobs:
             echo "aapt not found, skipping badging dump."
           fi
 
-      # 7. Upload APK Artifact (Accessible on GitHub Actions run summary)
+      # 8. Upload APK Artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
