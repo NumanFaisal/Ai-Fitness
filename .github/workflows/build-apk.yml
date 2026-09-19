@@ -1,0 +1,182 @@
+name: AI-Fitness-APKs
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: AI-Fitness-Release-APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci || npm install --legacy-peer-deps
+
+      # Injects production API URL into .env for Metro bundler
+      - name: Inject Production Environment Variables
+        run: |
+          echo "EXPO_PUBLIC_API_BASE_URL=https://ai-fitness-56uz.onrender.com" > .env
+          echo "EXPO_PUBLIC_API_URL=https://ai-fitness-56uz.onrender.com" >> .env
+          echo "API_BASE_URL=https://ai-fitness-56uz.onrender.com" >> .env
+          cat .env
+
+      # 1. Generate the native android directory so gradle files exist
+      - name: Generate Native Android Project (Expo Prebuild)
+        env:
+          EXPO_PUBLIC_API_BASE_URL: "https://ai-fitness-56uz.onrender.com"
+          EXPO_PUBLIC_API_URL: "https://ai-fitness-56uz.onrender.com"
+        run: npx expo prebuild --platform android --clean
+
+      # 2. Setup Java JDK 17
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Setup Keystore (Decodes secret if present, or generates standalone release keystore)
+      - name: Setup Keystore
+        id: keystore
+        run: |
+          KEYSTORE_DIR="android/app"
+          KEYSTORE_PATH="$KEYSTORE_DIR/release.keystore"
+          STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'aifitnesskey' }}"
+          KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}"
+
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "Decoding ANDROID_KEYSTORE_BASE64 secret into $KEYSTORE_PATH..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+          else
+            echo "ANDROID_KEYSTORE_BASE64 secret not found. Generating a standalone release keystore for CI..."
+            keytool -genkeypair -v -storetype PKCS12 -keystore "$KEYSTORE_PATH" \
+              -alias "$KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$STORE_PASS" -keypass "$KEY_PASS" \
+              -dname "CN=AiFitness, OU=Engineering, O=AiFitness, L=SanFrancisco, S=CA, C=US"
+          fi
+
+          if [ ! -f "$KEYSTORE_PATH" ]; then
+            echo "ERROR: Failed to prepare release.keystore!"
+            exit 1
+          fi
+          echo "Keystore ready at $KEYSTORE_PATH"
+
+      # 4. Configure Release Signing in android/app/build.gradle
+      - name: Configure Gradle Signing
+        run: |
+          STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'aifitnesskey' }}"
+          KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}"
+
+          node -e "
+            const fs = require('fs');
+            const file = 'android/app/build.gradle';
+            let content = fs.readFileSync(file, 'utf8');
+
+            const releaseSigning = \`        release {
+                storeFile file('release.keystore')
+                storePassword '\${'$'}{STORE_PASS}'
+                keyAlias '\${'$'}{KEY_ALIAS}'
+                keyPassword '\${'$'}{KEY_PASS}'
+            }\`.replace(\\\"\${'$'}{STORE_PASS}\\\", '$STORE_PASS').replace(\\\"\${'$'}{KEY_ALIAS}\\\", '$KEY_ALIAS').replace(\\\"\${'$'}{KEY_PASS}\\\", '$KEY_PASS');
+
+            if (!content.includes('signingConfigs.release')) {
+              content = content.replace(/signingConfigs\s*\{/, 'signingConfigs {\n' + releaseSigning);
+              content = content.replace(/buildTypes\s*\{\s*debug\s*\{[^\}]+\}\s*release\s*\{/, function(match) {
+                return match.replace(/signingConfig\s+signingConfigs\.\w+/, 'signingConfig signingConfigs.release');
+              });
+              // Ensure release buildType explicitly uses signingConfigs.release
+              content = content.replace(/(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?signingConfig\s+)signingConfigs\.\w+/, '\$1signingConfigs.release');
+              fs.writeFileSync(file, content, 'utf8');
+              console.log('Successfully configured release signingConfig in android/app/build.gradle');
+            }
+          "
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      # 5. Build signed Android Release APK
+      - name: Build Android Release APK
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"
+          EXPO_PUBLIC_API_BASE_URL: "https://ai-fitness-56uz.onrender.com"
+          EXPO_PUBLIC_API_URL: "https://ai-fitness-56uz.onrender.com"
+          API_BASE_URL: "https://ai-fitness-56uz.onrender.com"
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon --no-build-cache --stacktrace -x lint -x test
+
+      # 6. Verify and Rename Release APK
+      - name: Rename and Verify APK Signature & Release Flag
+        run: |
+          APK_DIR="android/app/build/outputs/apk/release"
+          STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'fitness123' }}"
+          KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'aifitnesskey' }}"
+          KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || 'fitness123' }}"
+          TARGET_APK="$APK_DIR/AI-Fitness-release.apk"
+
+          if [ -f "$APK_DIR/app-release.apk" ]; then
+            mv "$APK_DIR/app-release.apk" "$TARGET_APK"
+          elif [ -f "$APK_DIR/app-release-unsigned.apk" ]; then
+            echo "Signing app-release-unsigned.apk with apksigner..."
+            apksigner_path=$(find $ANDROID_HOME/build-tools -name apksigner | head -n 1)
+            $apksigner_path sign --ks android/app/release.keystore \
+              --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass "pass:$STORE_PASS" \
+              --key-pass "pass:$KEY_PASS" \
+              --out "$TARGET_APK" \
+              "$APK_DIR/app-release-unsigned.apk"
+          fi
+
+          if [ ! -f "$TARGET_APK" ]; then
+            echo "ERROR: Release APK was not found at $TARGET_APK"
+            ls -la "$APK_DIR/" || true
+            exit 1
+          fi
+
+          ls -la "$APK_DIR/"
+
+          # Verify Signature with apksigner or jarsigner
+          apksigner_path=$(find $ANDROID_HOME/build-tools -name apksigner | head -n 1)
+          if [ -n "$apksigner_path" ]; then
+            echo "Verifying signature with apksigner at $apksigner_path..."
+            $apksigner_path verify --verbose "$TARGET_APK"
+          else
+            echo "apksigner not found, trying jarsigner..."
+            jarsigner -verify -verbose -certs "$TARGET_APK"
+          fi
+
+          # Verify not debuggable with aapt
+          aapt_path=$(find $ANDROID_HOME/build-tools -name aapt | head -n 1)
+          if [ -n "$aapt_path" ]; then
+            echo "Checking release properties with aapt at $aapt_path..."
+            $aapt_path dump badging "$TARGET_APK" > badging.txt
+            if grep -q "application-debuggable" badging.txt; then
+              echo "ERROR: The generated APK contains 'application-debuggable' and is NOT a release build!"
+              exit 1
+            else
+              echo "SUCCESS: The generated APK is a valid RELEASE build (not debuggable)."
+            fi
+          else
+            echo "aapt not found, skipping badging dump."
+          fi
+
+      # 7. Upload APK Artifact (Accessible on GitHub Actions run summary)
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Fitness-release-apk
+          path: android/app/build/outputs/apk/release/AI-Fitness-release.apk
+          retention-days: 30

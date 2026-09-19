@@ -15,6 +15,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.numan.aifitness",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A"
       },
